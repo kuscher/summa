@@ -2,35 +2,32 @@ package io.github.kuscher.summa.ui
 
 import android.content.Context
 import android.net.Uri
-import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
-import io.github.kuscher.summa.SummaApp
 import io.github.kuscher.summa.data.Library
 import io.github.kuscher.summa.ui.editor.Session
 
-/** Import and export through the system file picker (no storage permission needed). */
+/** Export through the system file picker (no storage permission needed). */
 class FileActions(
-    val exportText: () -> Unit, val exportMarkdown: () -> Unit, val import: () -> Unit,
+    val exportText: () -> Unit, val exportMarkdown: () -> Unit,
     val exportCsv: () -> Unit, val exportHtml: () -> Unit, val exportPdf: () -> Unit,
 )
 
 @Composable
-fun rememberFileActions(session: Session?, onMessage: (String) -> Unit, onOpen: (String) -> Unit): FileActions {
+fun rememberFileActions(session: Session?, onMessage: (String) -> Unit): FileActions {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val app = SummaApp.instance
     val saveText = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
         if (uri != null && session != null) { write(context, uri, session.state.text.toString()); onMessage("Exported") }
     }
     val saveMd = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/markdown")) { uri ->
-        if (uri != null && session != null) { write(context, uri, markdown(session)); onMessage("Exported with answers") }
+        if (uri != null && session != null) { write(context, uri, markdown(session)); onMessage("Exported") }
     }
     val saveCsv = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
-        if (uri != null && session != null) { write(context, uri, Export.csv(SheetSnapshot.of(session))); onMessage("Exported as CSV") }
+        if (uri != null && session != null) { write(context, uri, Export.csv(SheetSnapshot.of(session))); onMessage("Exported") }
     }
     val saveHtml = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/html")) { uri ->
-        if (uri != null && session != null) { write(context, uri, Export.html(context, SheetSnapshot.of(session))); onMessage("Exported as a web page") }
+        if (uri != null && session != null) { write(context, uri, Export.html(context, SheetSnapshot.of(session))); onMessage("Exported") }
     }
     val savePdf = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
         if (uri != null && session != null) {
@@ -39,26 +36,14 @@ fun rememberFileActions(session: Session?, onMessage: (String) -> Unit, onOpen: 
             val pages = try {
                 context.contentResolver.openOutputStream(uri, "wt")?.use { Export.pdf(context, snap, it, w, h) }
             } catch (_: Exception) { null }
-            onMessage(if (pages == null) "Couldn't write the PDF" else "Exported a PDF (${pages} page${if (pages == 1) "" else "s"})")
+            onMessage(if (pages == null) "Couldn't write the PDF" else "Exported")
         }
-    }
-    val open = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
-        var last: String? = null
-        for (u in uris) {
-            val text = try { context.contentResolver.openInputStream(u)?.bufferedReader()?.readText() } catch (_: Exception) { null } ?: continue
-            val name = displayName(context, u)?.substringBeforeLast('.')
-            val body = if (name != null && Library.titleOf(text).isBlank()) "# $name\n$text" else text
-            last = app.library.create(body.replace("\r\n", "\n")).id
-        }
-        if (uris.isNotEmpty()) onMessage(if (uris.size == 1) "Imported 1 sheet" else "Imported ${uris.size} sheets")
-        last?.let(onOpen)
     }
     fun fileName(ext: String) = (Library.titleOf(session?.state?.text?.toString().orEmpty()).ifBlank { "Summa sheet" }
         .replace(Regex("[\\\\/:*?\"<>|]"), " ").trim()) + ext
     return FileActions(
         exportText = { saveText.launch(fileName(".txt")) },
         exportMarkdown = { saveMd.launch(fileName(".md")) },
-        import = { open.launch(arrayOf("text/*", "application/octet-stream")) },
         exportCsv = { saveCsv.launch(fileName(".csv")) },
         exportHtml = { saveHtml.launch(fileName(".html")) },
         exportPdf = { savePdf.launch(fileName(".pdf")) },
@@ -68,12 +53,6 @@ fun rememberFileActions(session: Session?, onMessage: (String) -> Unit, onOpen: 
 private fun write(context: Context, uri: Uri, text: String) {
     context.contentResolver.openOutputStream(uri, "wt")?.use { it.write(text.toByteArray()) }
 }
-
-private fun displayName(context: Context, uri: Uri): String? = try {
-    context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
-        if (c.moveToFirst()) c.getString(0) else null
-    }
-} catch (_: Exception) { null }
 
 /** Markdown: headings stay headings, other lines become "line — **answer**". */
 fun markdown(s: Session): String {

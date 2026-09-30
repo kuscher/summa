@@ -49,6 +49,17 @@ class Session(
     private val jobs = ArrayList<Job>()
     private var savedText = initial
     private var tick by mutableStateOf(0)
+    /** The line whose answer was just copied: it reads "Copied" for a moment instead of a pop-up. */
+    var copiedLine by mutableStateOf(-1)
+        private set
+    private var copiedJob: Job? = null
+
+    fun flashCopied(line: Int) {
+        copiedJob?.cancel()
+        copiedLine = line
+        copiedJob = scope.launch { delay(1200); copiedLine = -1 }
+    }
+
     /** How long the last evaluation took (for `./summa debug dump`). */
     @Volatile var lastEvalMs = 0.0; private set
 

@@ -19,9 +19,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -49,16 +46,12 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -67,7 +60,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -97,17 +89,14 @@ import androidx.compose.ui.unit.sp
 import io.github.kuscher.summa.SummaApp
 import io.github.kuscher.summa.data.Library
 import io.github.kuscher.summa.data.SheetMeta
-import io.github.kuscher.summa.ui.editor.Display
-import io.github.kuscher.summa.ui.editor.DisplayPill
-import io.github.kuscher.summa.ui.editor.Keypad
 import io.github.kuscher.summa.ui.editor.Session
 import io.github.kuscher.summa.ui.editor.SheetEditor
-import io.github.kuscher.summa.ui.editor.SheetToolbar
 import io.github.kuscher.summa.ui.editor.lineOf
 import io.github.kuscher.summa.ui.editor.lineStarts
-import io.github.kuscher.summa.ui.library.LibraryScreen
+import io.github.kuscher.summa.ui.library.PhoneList
+import io.github.kuscher.summa.ui.library.SheetActions
 import io.github.kuscher.summa.ui.library.Sidebar
-import io.github.kuscher.summa.ui.library.iconFor
+import kotlinx.coroutines.delay
 import io.github.kuscher.summa.ui.settings.SettingsScreen
 import io.github.kuscher.summa.ui.theme.SummaTheme
 import kotlinx.coroutines.flow.SharingStarted
@@ -191,9 +180,10 @@ class MainActivity : ComponentActivity() {
             KeyboardShortcutInfo("Settings", KeyEvent.KEYCODE_COMMA, c),
             KeyboardShortcutInfo("Print or save as PDF", KeyEvent.KEYCODE_P, c),
         )))
-        data?.add(KeyboardShortcutGroup("Autocomplete", listOf(
-            KeyboardShortcutInfo("Insert suggestion", KeyEvent.KEYCODE_TAB, 0),
-            KeyboardShortcutInfo("Hide suggestions", KeyEvent.KEYCODE_ESCAPE, 0),
+        data?.add(KeyboardShortcutGroup("Suggestions (grey text after the cursor)", listOf(
+            KeyboardShortcutInfo("Accept the suggestion", KeyEvent.KEYCODE_TAB, 0),
+            KeyboardShortcutInfo("Accept the suggestion", KeyEvent.KEYCODE_DPAD_RIGHT, 0),
+            KeyboardShortcutInfo("Hide the suggestion", KeyEvent.KEYCODE_ESCAPE, 0),
         )))
     }
 
@@ -224,9 +214,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private val STATS = listOf("sum", "avg", "count", "min", "max")
-private val STAT_LABEL = mapOf("sum" to "sum", "avg" to "average", "count" to "count", "min" to "min", "max" to "max")
-
 @Composable
 fun App(activity: MainActivity, requested: String?) {
     val app = SummaApp.instance
@@ -234,18 +221,21 @@ fun App(activity: MainActivity, requested: String?) {
     val index by app.library.state.collectAsState()
     val scope = rememberCoroutineScope()
     SummaTheme(settings) {
+        fun live() = index.sheets.filter { it.trashedAt == null && !Library.isSpecial(it.id) }
         var currentId by rememberSaveable {
             mutableStateOf(requested ?: app.prefs.getString("lastSheet")?.takeIf { id -> index.sheets.any { it.id == id && it.trashedAt == null } }
-                ?: index.sheets.filter { it.trashedAt == null && !Library.isSpecial(it.id) }.maxByOrNull { it.updated }?.id)
+                ?: live().maxByOrNull { it.updated }?.id)
         }
         var screen by rememberSaveable { mutableStateOf("sheet") }
         var showList by rememberSaveable { mutableStateOf(false) }
-        val snack = remember { SnackbarHostState() }
+        var status by remember { mutableStateOf<String?>(null) }
+        var deleted by remember { mutableStateOf<SheetMeta?>(null) }
         val search = rememberTextFieldState()
         val searchFocus = remember { FocusRequester() }
         val engineSettings = remember { app.prefs.state.map { app.prefs.engineSettings(it) }.stateIn(scope, SharingStarted.Eagerly, app.prefs.engineSettings()) }
-        val surface = MaterialTheme.colorScheme.surfaceContainerLow
-        SideEffect { Caption.enable(activity, surface.luminance() > 0.5f) }
+        val sidebarShown = settings.sidebar
+        val chrome = MaterialTheme.colorScheme.surfaceContainerLow
+        SideEffect { Caption.enable(activity, chrome.luminance() > 0.5f) }
 
         val id = currentId?.takeIf { cid -> index.sheets.any { it.id == cid && it.trashedAt == null } }
         val session = remember(id) { id?.let { Session(it, app.library.text(it), app.library, engineSettings, app.rates.rates, scope) } }
@@ -257,7 +247,26 @@ fun App(activity: MainActivity, requested: String?) {
 
         fun open(sheet: String) { currentId = sheet; screen = "sheet"; showList = false; search.setTextAndPlaceCursorAtEnd("") }
         fun newSheet() { open(app.library.create("").id) }
-        fun message(m: String) { scope.launch { snack.currentSnackbarData?.dismiss(); snack.showSnackbar(m) } }
+        // Feedback is a few words in the title bar, never a pop-up over the sheet.
+        fun message(m: String) { status = m; scope.launch { delay(2600); if (status == m) status = null } }
+        fun delete(sheet: String) {
+            val meta = app.library.get(sheet) ?: return
+            app.library.trash(sheet)
+            deleted = meta
+            if (currentId == sheet) {
+                val next = live().filter { it.id != sheet }.maxByOrNull { it.updated }?.id
+                currentId = next
+                if (next == null || !activity.resources.configuration.let { it.screenWidthDp >= 720 }) showList = true
+            }
+            scope.launch { delay(10_000); if (deleted?.id == meta.id) deleted = null }
+        }
+        fun undoDelete() { deleted?.let { app.library.restore(it.id); open(it.id) }; deleted = null }
+        val actions = SheetActions(
+            open = ::open,
+            newWindow = { MainActivity.openInNewWindow(activity, it) },
+            duplicate = { open(app.library.duplicate(it).id) },
+            delete = ::delete,
+        )
 
         DebugHooks.open = { open(it) }
         DebugHooks.newSheet = { newSheet() }
@@ -272,13 +281,13 @@ fun App(activity: MainActivity, requested: String?) {
                         when {
                             ctrl && e.isShiftPressed && e.key == Key.N -> { MainActivity.openInNewWindow(activity, null); true }
                             ctrl && e.key == Key.N -> { newSheet(); true }
-                            ctrl && e.key == Key.K -> { runCatching { searchFocus.requestFocus() }; showList = true; true }
+                            ctrl && e.key == Key.K -> { if (!settings.sidebar) app.prefs.update { it.copy(sidebar = true) }; runCatching { searchFocus.requestFocus() }; showList = true; true }
                             ctrl && e.key == Key.Comma -> { screen = "settings"; true }
                             ctrl && e.isShiftPressed && e.key == Key.M -> { MainActivity.openMini(activity); true }
                             ctrl && e.isShiftPressed && e.key == Key.C -> {
                                 val s = session ?: return@onPreviewKeyEvent false
                                 val ans = currentAnswer(s)
-                                if (ans != null) { copyToClipboard(activity, ans); message("Copied $ans") }
+                                if (ans != null) { copyToClipboard(activity, ans); s.flashCopied(lineOf(lineStarts(s.state.text), s.state.selection.min)) }
                                 true
                             }
                             ctrl && e.key == Key.Slash -> { session?.let { toggleComment(it) }; true }
@@ -301,23 +310,24 @@ fun App(activity: MainActivity, requested: String?) {
                 Box(Modifier.fillMaxSize().windowInsetsPadding(sides).windowInsetsPadding(topInsets)) {
                     if (wide) {
                         Column(Modifier.fillMaxSize()) {
-                            // On a Googlebook this header lives in the window's caption bar.
-                            HeaderRow(cap, wideLayout = true) {
+                            // The system's own title bar stays (app handle, window buttons, dragging);
+                            // we only paint it the header's colour, and the header sits right below
+                            // it, so the two read as one taller bar.
+                            val barColor = if (sidebarShown || screen == "settings") chrome else MaterialTheme.colorScheme.surface
+                            CaptionSpacer(cap, barColor)
+                            HeaderRow(barColor) {
                                 if (screen == "settings") {
-                                    HeaderButton(Sym.ARROW_BACK, "Back to the sheet", cap.present) { screen = "sheet" }
-                                    Text("Settings", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight(700)))
+                                    HeaderButton(Sym.ARROW_BACK, "Back to the sheet") { screen = "sheet" }
+                                    Text("Settings", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight(650)))
                                 } else {
-                                    SheetHeader(session, meta, onBack = null, onToggleSidebar = { app.prefs.update { it.copy(sidebar = !it.sidebar) } },
-                                        onSettings = { screen = "settings" }, onMessage = ::message, inCaption = cap.present,
+                                    SheetHeader(session, meta, status, onBack = null, onToggleSidebar = { app.prefs.update { it.copy(sidebar = !it.sidebar) } },
+                                        onSettings = { screen = "settings" }, onMessage = ::message,
+                                        onNew = ::newSheet, onDelete = ::delete,
                                         onNewWindow = { MainActivity.openInNewWindow(activity, it) }, onMini = { MainActivity.openMini(activity) })
                                 }
                             }
                             Row(Modifier.weight(1f)) {
-                                AnimatedVisibility(settings.sidebar, enter = expandHorizontally(), exit = shrinkHorizontally()) {
-                                    Sidebar(app.library, index, id, search, searchFocus, ::open, ::newSheet, onSettings = { screen = "settings" },
-                                        onMini = { MainActivity.openMini(activity) }, onNewWindow = { MainActivity.openInNewWindow(activity, it) },
-                                        modifier = Modifier.width(272.dp))
-                                }
+                                if (sidebarShown) Sidebar(app.library, index, id, search, searchFocus, actions, ::newSheet, deleted, ::undoDelete, Modifier.width(256.dp))
                                 val mod = Modifier.weight(1f)
                                 when {
                                     screen == "settings" -> SettingsScreen(onBack = { screen = "sheet" }, modifier = mod, showHeader = false,
@@ -328,25 +338,23 @@ fun App(activity: MainActivity, requested: String?) {
                             }
                         }
                     } else {
-                        BackHandler(enabled = !showList && screen == "sheet") { showList = true }
+                        BackHandler(enabled = !showList && screen == "sheet" && session != null) { showList = true }
                         BackHandler(enabled = screen == "settings") { screen = "sheet" }
                         when {
-                            screen == "settings" -> Column { if (cap.present) Spacer(Modifier.height(cap.height)); SettingsScreen(onBack = { screen = "sheet" }, onOpenDefinitions = { open(app.library.definitions().id) }) }
-                            showList || session == null -> Column { if (cap.present) Spacer(Modifier.height(cap.height)); LibraryScreen(app.library, index, id, search, searchFocus, ::open, ::newSheet, onSettings = { screen = "settings" }) }
+                            screen == "settings" -> Column { CaptionSpacer(cap, MaterialTheme.colorScheme.surface); SettingsScreen(onBack = { screen = "sheet" }, onOpenDefinitions = { open(app.library.definitions().id) }) }
+                            showList || session == null -> Column {
+                                CaptionSpacer(cap, MaterialTheme.colorScheme.surface)
+                                PhoneList(app.library, index, search, searchFocus, actions.copy(newWindow = null), ::newSheet, { screen = "settings" }, deleted, ::undoDelete)
+                            }
                             else -> Column(Modifier.fillMaxSize()) {
-                                // Narrow windows keep their header below the caption bar: the system's
-                                // own controls would leave no room for the title.
-                                if (cap.present) Spacer(Modifier.height(cap.height))
-                                HeaderRow(CaptionInsets(0.dp, 0.dp, 0.dp), wideLayout = false) {
-                                    SheetHeader(session, meta, onBack = { showList = true }, onToggleSidebar = null, onSettings = { screen = "settings" },
-                                        onMessage = ::message, inCaption = false, onNewWindow = null, onMini = null)
+                                CaptionSpacer(cap, MaterialTheme.colorScheme.surface)
+                                HeaderRow(MaterialTheme.colorScheme.surface) {
+                                    SheetHeader(session, meta, status, onBack = { showList = true }, onToggleSidebar = null, onSettings = { screen = "settings" },
+                                        onMessage = ::message, onNew = ::newSheet, onDelete = ::delete, onNewWindow = null, onMini = null)
                                 }
                                 EditorPane(session, false, Modifier.weight(1f), onMessage = ::message)
                             }
                         }
-                    }
-                    SnackbarHost(snack, Modifier.align(Alignment.BottomCenter).padding(bottom = 96.dp)) { d ->
-                        Snackbar(d, shape = RoundedCornerShape(16.dp))
                     }
                 }
             }
@@ -354,14 +362,19 @@ fun App(activity: MainActivity, requested: String?) {
     }
 }
 
-/** The top row; in a desktop window it fills the caption bar and keeps clear of the system's controls. */
+private fun SheetActions.copy(newWindow: ((String) -> Unit)?) = SheetActions(open, newWindow, duplicate, delete)
+
+/** The window's own title bar area (desktop windows), painted [color] so it matches the header below. */
 @Composable
-fun HeaderRow(cap: CaptionInsets, wideLayout: Boolean, content: @Composable RowScope.() -> Unit) {
+fun CaptionSpacer(cap: CaptionInsets, color: androidx.compose.ui.graphics.Color) {
+    if (cap.present) Box(Modifier.fillMaxWidth().height(cap.height).background(color))
+}
+
+/** The header row: title and actions, just below the system's title bar. */
+@Composable
+fun HeaderRow(background: androidx.compose.ui.graphics.Color, content: @Composable RowScope.() -> Unit) {
     Row(
-        Modifier.fillMaxWidth()
-            .height(if (cap.present) maxOf(cap.height, 44.dp) else 56.dp)
-            .background(if (wideLayout) MaterialTheme.colorScheme.surfaceContainerLow else MaterialTheme.colorScheme.surface)
-            .padding(start = cap.start + 6.dp, end = cap.end + 6.dp),
+        Modifier.fillMaxWidth().height(48.dp).background(background).padding(horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         content = content,
     )
@@ -371,95 +384,86 @@ fun HeaderRow(cap: CaptionInsets, wideLayout: Boolean, content: @Composable RowS
 private fun EmptyState(modifier: Modifier, onNew: () -> Unit) {
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("No sheet open", style = MaterialTheme.typography.headlineSmall)
-            Text("Start a new sheet, or pick one from the list.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            androidx.compose.material3.Button(onClick = onNew, modifier = Modifier.padding(top = 16.dp)) { Text("New sheet") }
+            Text("No sheet open", style = MaterialTheme.typography.titleLarge)
+            androidx.compose.material3.TextButton(onClick = onNew, modifier = Modifier.padding(top = 8.dp)) { Text("New sheet") }
         }
     }
 }
 
-/** A round icon button; inside the caption bar it opts out of window dragging. */
+/** A round icon button for the header. */
 @Composable
-fun HeaderButton(sym: String, label: String, inCaption: Boolean, onClick: () -> Unit) {
+fun HeaderButton(sym: String, label: String, onClick: () -> Unit) {
     Box(
-        Modifier.size(40.dp).let { if (inCaption) it.systemGestureExclusion() else it }.clip(CircleShape)
-            .clickable(onClick = onClick).semantics { contentDescription = label },
+        Modifier.size(40.dp).clip(CircleShape)
+            .clickable(onClickLabel = label, onClick = onClick).semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) { SymIcon(sym, size = 21.sp, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
 }
 
-/** Sheet title, rates chip, mini, share and the More menu. */
+@Composable
+private fun MenuItem(label: String, hint: String? = null, submenu: Boolean = false, onClick: () -> Unit) {
+    DropdownMenuItem(
+        text = { Text(label) },
+        trailingIcon = when {
+            submenu -> ({ SymIcon(Sym.CHEVRON_RIGHT, size = 18.sp, tint = MaterialTheme.colorScheme.onSurfaceVariant) })
+            hint != null -> ({ Text(hint, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) })
+            else -> null
+        },
+        onClick = onClick,
+    )
+}
+
+/** Title, a short status, and the mini, Share and More buttons. */
 @Composable
 fun RowScope.SheetHeader(
-    session: Session?, meta: SheetMeta?, onBack: (() -> Unit)?, onToggleSidebar: (() -> Unit)?, onSettings: () -> Unit,
-    onMessage: (String) -> Unit, inCaption: Boolean, onNewWindow: ((String) -> Unit)?, onMini: (() -> Unit)?,
+    session: Session?, meta: SheetMeta?, status: String?, onBack: (() -> Unit)?, onToggleSidebar: (() -> Unit)?, onSettings: () -> Unit,
+    onMessage: (String) -> Unit, onNew: () -> Unit, onDelete: (String) -> Unit,
+    onNewWindow: ((String) -> Unit)?, onMini: (() -> Unit)?,
 ) {
-    val app = SummaApp.instance
     val scheme = MaterialTheme.colorScheme
     val context = LocalContext.current
-    val ex = if (inCaption) Modifier.systemGestureExclusion() else Modifier
     when {
-        onBack != null -> HeaderButton(Sym.ARROW_BACK, "Sheets", inCaption, onBack)
-        onToggleSidebar != null -> HeaderButton(Sym.MENU, "Show or hide the sheet list", inCaption, onToggleSidebar)
+        onBack != null -> HeaderButton(Sym.ARROW_BACK, "Sheets", onBack)
+        onToggleSidebar != null -> HeaderButton(Sym.MENU, "Show or hide the sheet list", onToggleSidebar)
     }
-    SymIcon(iconFor(meta?.title ?: ""), size = 19.sp, filled = true, tint = scheme.primary, modifier = Modifier.padding(start = 6.dp))
     Text(
-        meta?.title?.ifBlank { "Untitled" } ?: "Summa", Modifier.padding(start = 10.dp).weight(1f),
-        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight(700)), maxLines = 1, overflow = TextOverflow.Ellipsis,
+        meta?.title?.ifBlank { "Untitled" } ?: "Summa", Modifier.padding(start = 8.dp).weight(1f),
+        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight(650)), maxLines = 1, overflow = TextOverflow.Ellipsis,
     )
+    if (status != null) Text(status, Modifier.padding(horizontal = 8.dp), style = MaterialTheme.typography.labelLarge, color = scheme.onSurfaceVariant, maxLines = 1)
     if (session == null) return
-    val narrow = onBack != null
-    val ev = session.evaluated
-    if (ev?.result?.anyRateDependent == true) {
-        val r by app.rates.rates.collectAsState()
-        Row(
-            ex.padding(end = 6.dp).clip(CircleShape).background(scheme.surfaceContainerHigh)
-                .clickable { app.rates.refresh(force = true); onMessage("Updating exchange rates…") }
-                .padding(horizontal = 10.dp, vertical = 6.dp)
-                .semantics { contentDescription = "Exchange rates from ${r.source}, ${r.asOf}. Click to update." },
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            SymIcon(Sym.CURRENCY_EXCHANGE, size = 16.sp, tint = scheme.tertiary)
-            if (!narrow) Text("${if (r.source.contains("Central")) "ECB" else r.source.ifBlank { "Rates" }} · ${prettyDate(r.asOf)}",
-                Modifier.padding(start = 6.dp), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
+    var share by remember { mutableStateOf(false) }
+    var export by remember { mutableStateOf(false) }
+    var more by remember { mutableStateOf(false) }
+    val files = rememberFileActions(session, onMessage)
+    if (onMini != null) HeaderButton(Sym.PICTURE_IN_PICTURE_ALT, "Mini calculator", onMini)
+    Box {
+        HeaderButton(Sym.IOS_SHARE, "Share") { share = true }
+        DropdownMenu(share, onDismissRequest = { share = false }, shape = RoundedCornerShape(14.dp)) {
+            MenuItem("Copy with answers") { share = false; copyToClipboard(context, withAnswers(session)); onMessage("Copied") }
+            MenuItem("Share as text…") { share = false; shareSheet(context, session) }
+            MenuItem("Share as PDF…") { share = false; Export.sharePdf(context, SheetSnapshot.of(session)) }
+            HorizontalDivider(Modifier.padding(vertical = 4.dp))
+            MenuItem("Export", submenu = true) { share = false; export = true }
+            MenuItem("Print…", "Ctrl+P") { share = false; Export.print(context, SheetSnapshot.of(session)) }
+        }
+        DropdownMenu(export, onDismissRequest = { export = false }, shape = RoundedCornerShape(14.dp)) {
+            MenuItem("PDF…") { export = false; files.exportPdf() }
+            MenuItem("Web page (HTML)…") { export = false; files.exportHtml() }
+            MenuItem("Spreadsheet (CSV)…") { export = false; files.exportCsv() }
+            MenuItem("Markdown…") { export = false; files.exportMarkdown() }
+            MenuItem("Plain text…") { export = false; files.exportText() }
         }
     }
-    var more by remember { mutableStateOf(false) }
-    var exportMenu by remember { mutableStateOf(false) }
-    val files = rememberFileActions(session, onMessage) { DebugHooks.open(it) }
-    if (onMini != null) HeaderButton(Sym.PICTURE_IN_PICTURE_ALT, "Mini calculator", inCaption, onMini)
-    HeaderButton(Sym.IOS_SHARE, "Share", inCaption) { shareSheet(context, session) }
     Box {
-        HeaderButton(Sym.MORE_VERT, "More", inCaption) { more = true }
-        DropdownMenu(more, onDismissRequest = { more = false }, shape = RoundedCornerShape(18.dp)) {
-            DropdownMenuItem(text = { Text(if (meta?.pinned == true) "Unpin" else "Pin") }, leadingIcon = { SymIcon(Sym.KEEP, size = 20.sp) },
-                onClick = { more = false; app.library.pin(session.id, meta?.pinned != true) })
-            if (onNewWindow != null) DropdownMenuItem(text = { Text("Open in new window") }, leadingIcon = { SymIcon(Sym.OPEN_IN_NEW, size = 20.sp) },
-                onClick = { more = false; onNewWindow(session.id) })
-            DropdownMenuItem(text = { Text("Copy lines and answers") }, leadingIcon = { SymIcon(Sym.CONTENT_COPY, size = 20.sp) },
-                onClick = { more = false; copyToClipboard(context, withAnswers(session)); onMessage("Copied the sheet with its answers") })
-            DropdownMenuItem(text = { Text("Export…") }, leadingIcon = { SymIcon(Sym.FILE_DOWNLOAD, size = 20.sp) },
-                trailingIcon = { SymIcon(Sym.CHEVRON_RIGHT, size = 18.sp) },
-                onClick = { more = false; exportMenu = true })
-            DropdownMenuItem(text = { Text("Print…") }, leadingIcon = { SymIcon(Sym.PRINT, size = 20.sp) },
-                trailingIcon = { Text("Ctrl P", style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant) },
-                onClick = { more = false; Export.print(context, SheetSnapshot.of(session)) })
-            DropdownMenuItem(text = { Text("Import sheets…") }, leadingIcon = { SymIcon(Sym.FILE_UPLOAD, size = 20.sp) },
-                onClick = { more = false; files.import() })
+        HeaderButton(Sym.MORE_VERT, "More") { more = true }
+        DropdownMenu(more, onDismissRequest = { more = false }, shape = RoundedCornerShape(14.dp)) {
+            MenuItem("New sheet", "Ctrl+N") { more = false; onNew() }
+            if (onNewWindow != null) MenuItem("New window", "Ctrl+Shift+N") { more = false; onNewWindow(session.id) }
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
-            DropdownMenuItem(text = { Text("Move to trash") }, leadingIcon = { SymIcon(Sym.DELETE, size = 20.sp) },
-                onClick = { more = false; app.library.trash(session.id) })
-            DropdownMenuItem(text = { Text("Settings") }, leadingIcon = { SymIcon(Sym.SETTINGS, size = 20.sp) }, onClick = { more = false; onSettings() })
-        }
-        DropdownMenu(exportMenu, onDismissRequest = { exportMenu = false }, shape = RoundedCornerShape(18.dp)) {
-            Text("Export this sheet", Modifier.padding(start = 16.dp, top = 8.dp, bottom = 4.dp), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
-            for ((label, sym, go) in listOf(
-                Triple("PDF", Sym.PICTURE_AS_PDF, files.exportPdf),
-                Triple("Web page (HTML)", Sym.CODE, files.exportHtml),
-                Triple("Spreadsheet (CSV)", Sym.TABLE_VIEW, files.exportCsv),
-                Triple("Markdown with answers", Sym.DESCRIPTION, files.exportMarkdown),
-                Triple("Plain text", Sym.SHORT_TEXT, files.exportText),
-            )) DropdownMenuItem(text = { Text(label) }, leadingIcon = { SymIcon(sym, size = 20.sp) }, onClick = { exportMenu = false; go() })
+            MenuItem("Delete sheet") { more = false; onDelete(session.id) }
+            HorizontalDivider(Modifier.padding(vertical = 4.dp))
+            MenuItem("Settings", "Ctrl+,") { more = false; onSettings() }
         }
     }
 }
@@ -477,15 +481,6 @@ fun insertAtCursor(s: Session, text: String) {
         val sel = selection
         replace(sel.min, sel.max, text)
         selection = TextRange(sel.min + text.length)
-    }
-}
-
-/** Keypad backspace: deletes the selection or the character before the cursor. */
-fun backspace(s: Session) {
-    s.state.edit {
-        val sel = selection
-        if (!sel.collapsed) { replace(sel.min, sel.max, ""); selection = TextRange(sel.min) }
-        else if (sel.min > 0) { replace(sel.min - 1, sel.min, ""); selection = TextRange(sel.min - 1) }
     }
 }
 
@@ -530,69 +525,21 @@ fun moveLine(s: Session, dir: Int) {
     s.state.edit { replace(0, length, text); selection = TextRange(newStart + minOf(col, lines[j].length)) }
 }
 
-/** The editor with its floating toolbar (and, on phones, the keypad). */
+/** The sheet, and nothing over it. */
 @Composable
 fun EditorPane(session: Session, wide: Boolean, modifier: Modifier, onMessage: (String) -> Unit, mini: Boolean = false) {
     val app = SummaApp.instance
     val settings by app.prefs.state.collectAsState()
     val scroll = rememberScrollState()
-    val text = session.state.text
-    val starts = remember(text.toString()) { lineStarts(text) }
-    val sel = session.state.selection
-    val a = lineOf(starts, sel.min)
-    val b = lineOf(starts, if (sel.collapsed) sel.min else maxOf(sel.min, sel.max - 1))
-    var statIdx by remember { mutableIntStateOf(0) }
-    var keypad by rememberSaveable { mutableStateOf(false) }
-    DebugHooks.keypad = { keypad = !keypad }
-    val ev = session.evaluated
-    val display = run {
-        if (ev == null) Display("Line ${a + 1}", null, false)
-        else if (a == b) Display("Line ${a + 1}", ev.result.lines.getOrNull(a)?.answer, false)
-        else {
-            val kind = STATS[statIdx % STATS.size]
-            val v = ev.result.stat(kind, (a..b).toList())
-            Display("${b - a + 1} lines · ${STAT_LABEL[kind]}", v?.let { ev.result.format(it) }, true)
-        }
-    }
-    Column(modifier.fillMaxSize()) {
-        Box(Modifier.weight(1f).fillMaxWidth().let { if (keypad) it else it.imePadding() }) {
-            SheetEditor(
-                session, settings, activeLine = a, scroll = scroll, compact = !wide || mini,
-                contentPadding = PaddingValues(top = 6.dp, bottom = if (mini) 76.dp else if (keypad) 24.dp else 120.dp),
-                onInsert = { insertAtCursor(session, it) }, onMessage = onMessage, keypadOpen = keypad,
-            )
-            if (mini) {
-                DisplayPill(
-                    display, onCycle = { statIdx++ }, big = false,
-                    onCopy = { v -> copyToClipboard(app, v); onMessage("Copied $v") },
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(end = 10.dp, bottom = 12.dp),
-                )
-            } else if (!keypad) {
-                SheetToolbar(
-                    display, onInsert = { insertAtCursor(session, it) }, onCycle = { statIdx++ }, onMessage = onMessage,
-                    keypadOpen = keypad, onKeypad = if (!wide) ({ keypad = !keypad }) else null, compact = !wide,
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp),
-                )
-            }
-        }
-        // With the keypad open the toolbar gets its own row, so it never covers the line being typed.
-        if (keypad && !wide && !mini) Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainer).padding(top = 8.dp), contentAlignment = Alignment.Center) {
-            SheetToolbar(
-                display, onInsert = { insertAtCursor(session, it) }, onCycle = { statIdx++ }, onMessage = onMessage,
-                keypadOpen = true, onKeypad = { keypad = false }, compact = true,
-            )
-        }
-        if (keypad && !wide && !mini) Keypad(
-            onText = { insertAtCursor(session, it) }, onBackspace = { backspace(session) },
-            onKeyboard = { keypad = false },
+    val compact = !wide || mini
+    Box(modifier.fillMaxSize().imePadding()) {
+        SheetEditor(
+            session, settings, scroll = scroll, compact = compact,
+            contentPadding = PaddingValues(start = if (compact) 18.dp else 40.dp, end = if (compact) 14.dp else 36.dp, top = if (compact) 8.dp else 14.dp, bottom = 80.dp),
+            onMessage = onMessage,
         )
     }
 }
-
-fun prettyDate(iso: String?): String = try {
-    val d = java.time.LocalDate.parse(iso)
-    d.format(java.time.format.DateTimeFormatter.ofPattern("d MMM"))
-} catch (_: Exception) { iso ?: "" }
 
 /** "Flights: 2 × €189   = €378.00" per line, for sharing and "copy lines and answers". */
 fun withAnswers(s: Session): String {
@@ -620,5 +567,4 @@ object DebugHooks {
     var newSheet: () -> Unit = {}
     var screen: (String) -> Unit = {}
     var focus: () -> Unit = {}
-    var keypad: () -> Unit = {}
 }

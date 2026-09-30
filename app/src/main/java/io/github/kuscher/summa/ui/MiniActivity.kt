@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
@@ -78,42 +77,33 @@ class MiniActivity : ComponentActivity() {
             val settings by app.prefs.state.collectAsState()
             val scope = rememberCoroutineScope()
             SummaTheme(settings) {
-                val snack = remember { SnackbarHostState() }
-                onMessage = { m -> scope.launch { snack.currentSnackbarData?.dismiss(); snack.showSnackbar(m) } }
+                var status by remember { mutableStateOf<String?>(null) }
+                onMessage = { m -> status = m; scope.launch { kotlinx.coroutines.delay(2600); if (status == m) status = null } }
                 val engineSettings = remember { app.prefs.state.map { app.prefs.engineSettings(it) }.stateIn(scope, SharingStarted.Eagerly, app.prefs.engineSettings()) }
                 val session = remember { Session(Library.SCRATCH, app.library.text(Library.SCRATCH), app.library, engineSettings, app.rates.rates, scope) }
                 DisposableEffect(session) { onDispose { session.close() } }
-                val bar = MaterialTheme.colorScheme.surfaceContainerLow
+                val bar = MaterialTheme.colorScheme.surface
                 SideEffect { Caption.enable(this, bar.luminance() > 0.5f) }
                 Surface(color = MaterialTheme.colorScheme.surface) {
                     Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))) {
                         Column(Modifier.fillMaxSize()) {
                             val cap = rememberCaptionInsets(captionTracker)
-                            HeaderRow(cap, wideLayout = true) {
-                                Row(Modifier.padding(start = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    SymIcon(Sym.CALCULATE, size = 19.sp, filled = true, tint = MaterialTheme.colorScheme.primary)
-                                    Text("Mini", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight(700)))
-                                }
+                            CaptionSpacer(cap, MaterialTheme.colorScheme.surface)
+                            HeaderRow(MaterialTheme.colorScheme.surface) {
+                                Text("Mini", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight(650)))
                                 Spacer(Modifier.weight(1f))
+                                status?.let { Text(it, Modifier.padding(horizontal = 6.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
                                 if (Build.VERSION.SDK_INT >= 37) {
                                     Box(
-                                        Modifier.size(38.dp).let { if (cap.present) it.systemGestureExclusion() else it }.clip(if (pinned) RoundedCornerShape(12.dp) else CircleShape)
-                                            .background(if (pinned) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow)
-                                            .clickable { togglePin() }
+                                        Modifier.size(38.dp).clip(CircleShape)
+                                            .clickable(onClickLabel = if (pinned) "Stop keeping on top" else "Keep on top") { togglePin() }
                                             .semantics { contentDescription = if (pinned) "Stop keeping on top" else "Keep on top" },
                                         contentAlignment = Alignment.Center,
-                                    ) { SymIcon(Sym.KEEP, size = 20.sp, filled = pinned, tint = if (pinned) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant) }
-                                }
-                                HeaderButton(Sym.OPEN_IN_FULL, "Open in Summa", cap.present) {
-                                    val text = session.state.text.toString()
-                                    session.saveNow()
-                                    val sheet = app.library.create(text.lines().filterNot { it.startsWith("// Mini calculator") }.joinToString("\n").trim().ifEmpty { "" })
-                                    startActivity(Intent(this@MiniActivity, MainActivity::class.java).putExtra(MainActivity.EXTRA_SHEET, sheet.id).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                                    ) { SymIcon(Sym.KEEP, size = 20.sp, filled = pinned, tint = if (pinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant) }
                                 }
                             }
                             MainActivityBridge.EditorPaneFor(session, onMessage)
                         }
-                        SnackbarHost(snack, Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp)) { d -> Snackbar(d, shape = RoundedCornerShape(14.dp)) }
                     }
                 }
             }

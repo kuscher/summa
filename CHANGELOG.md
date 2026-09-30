@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.1 (2026-09-30)
+
+Just the sheet. Summa is now much closer to Numi: you type on the left, answers appear on the right,
+and nothing floats over the page.
+
+- **Answers are plain text** on the right, in the theme's colour; totals are bolder. Click one to
+  copy it (it says "Copied" for a moment). Right-click: Copy, Copy line with answer, Convert to.
+- **Suggestions are grey text** after the cursor: Tab (or →) takes one, Esc hides it. No pop-up.
+- **The sheet list is a history:** newest first, with search and +. Right-click a sheet to open it
+  in a new window, duplicate or delete it; a delete shows Undo right in the list.
+- **The header sits below the window's own title bar**, which is painted the same colour, so the
+  two read as one bar and the system's handle and window buttons work as usual.
+- **One Share button** for copy with answers, share as text or PDF (new), export and print.
+  The ⋮ menu has New sheet, New window, Delete and Settings.
+- **Settings trimmed** to eleven rows. Line numbers are off unless you turn them on.
+- **The mini calculator** is just the sheet and its keep-on-top pin.
+- **Gone:** the floating toolbar and display, the tonal answer column, the current-line highlight,
+  the autocomplete pop-up, the phone keypad, the exchange-rate chip, pop-up messages, folders,
+  pins, the trash view, and the settings for answer column width, monospaced text, slashed zero,
+  thousands separators, trigonometry mode and what $ means (they're back to their defaults).
+  Deleted sheets are removed for good after a week. Everything Summa can calculate stays.
+
 ## 1.0 (2026-09-30)
 
 Parity with Soulver and Numi, and polish.

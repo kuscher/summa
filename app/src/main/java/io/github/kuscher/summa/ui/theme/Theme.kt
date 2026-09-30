@@ -49,22 +49,20 @@ object SummaFonts {
     })
 }
 
-/** Colours for syntax and answers that aren't in the M3 scheme, derived from it. */
+/** Colours for syntax that aren't in the M3 scheme, derived from it (answers use `primary`). */
 @Immutable
 data class SummaColors(
     val number: Color, val unit: Color, val variable: Color, val keyword: Color, val function: Color,
-    val label: Color, val comment: Color, val heading: Color, val reference: Color, val referenceBg: Color,
-    val date: Color, val rail: Color, val activeLine: Color, val answer: Color,
+    val label: Color, val comment: Color, val heading: Color, val reference: Color, val date: Color,
 )
 
 val LocalSummaColors = staticCompositionLocalOf<SummaColors> { error("no theme") }
 
 fun summaColors(c: ColorScheme) = SummaColors(
-    number = c.onSurface, unit = c.tertiary, variable = c.primary, keyword = c.onSurfaceVariant,
+    number = c.onSurface, unit = c.tertiary, variable = c.secondary, keyword = c.onSurfaceVariant,
     // Comments sit a little darker than the outline tone so they keep 4.5:1 contrast (WCAG AA).
     function = c.secondary, label = c.onSurfaceVariant, comment = androidx.compose.ui.graphics.lerp(c.outline, c.onSurfaceVariant, 0.4f), heading = c.onSurface,
-    reference = c.onSecondaryContainer, referenceBg = c.secondaryContainer, date = c.tertiary,
-    rail = c.surfaceContainerLow, activeLine = c.primaryContainer.copy(alpha = 0.16f), answer = c.onSurface,
+    reference = c.secondary, date = c.tertiary,
 )
 
 private fun typography(): Typography {

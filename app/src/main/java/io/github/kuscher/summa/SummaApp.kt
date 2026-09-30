@@ -41,6 +41,7 @@ class SummaApp : Application() {
             prefs.state.map { it.onlineRates to it.crypto }.distinctUntilChanged().collect { rates.onSettingsChanged() }
         }
         scope.launch { loadDefinitions() }
+        scope.launch { library.purgeTrash(7L * 24 * 3600 * 1000) }
         if (!prefs.value.firstRunDone) {
             if (library.state.value.sheets.isEmpty()) {
                 library.create(Samples.LISBON)
@@ -84,10 +85,11 @@ object Samples {
         work = 6.5 hours
         rate × work
         + 20% tax
-        // Names on the Definitions sheet (in the sheet list) work in every sheet.
+        // Names on the Definitions sheet (Settings › Definitions) work in every sheet.
 
         // Lines that start with // are notes. Click an answer to copy it,
-        // right-click it for more. Ctrl+/ turns a line into a note.
+        // right-click it for more. Grey text after the cursor is a
+        // suggestion: Tab takes it.
     """.trimIndent()
 
     val LISBON = """

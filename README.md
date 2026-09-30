@@ -29,13 +29,14 @@
 Not affiliated with or endorsed by any employer (<a href="#about-this-project">more</a>). Inspired by Soulver and Numi.</sub></p>
 
 <p align="center">
-  <img src="docs/images/hero.png" width="880" alt="Summa on a Googlebook: a trip budget and a road trip with answers in a tonal column on the right">
+  <img src="docs/images/hero.png" width="880" alt="Summa on a Googlebook: a trip budget and a road trip, text on the left and answers on the right">
 </p>
 
 ## What it does
 
 Summa is a sheet of paper that does the maths. Write a line in plain words and the answer appears
-next to it, on the right. Change a number and everything that depends on it updates.
+next to it, on the right. Change a number and everything that depends on it updates. Nothing else
+gets in the way: no toolbars, no pop-ups, just the sheet.
 
 - **Words around numbers are fine.** `Lunch: $12 + 15% tip`, `Flights: 2 × €189`. Summa skips the
   words it doesn't know and works out the rest. A line that isn't maths simply has no answer.
@@ -53,48 +54,40 @@ next to it, on the right. Change a number and everything that depends on it upda
   `€1,350 incl 19% VAT`, `€120 without 20% VAT`.
 - **Workdays and public holidays.** `workdays until Dec 18`, `5 workdays after Dec 22`,
   `workdays between Oct 1 and Oct 31`, `next holiday`. Summa knows the nationwide holidays of 22
-  countries and skips your region's (Settings › Dates).
+  countries and skips your region's (Settings › Public holidays).
 - **Your own names.** `rate = $85/hour`, then `rate × 6.5 hours`. Refer to a line with `line6`,
   the line above with `prev`, and add up a block with `sum`.
 - **Your own units and functions.** `1 tin = 2.5 L`, then `7.2 L in tins`; `1 coffee = $4.50`, then
   `$20 in coffees`; `tip(bill) = bill × 18%`, then `tip($86)`. Put them on the **Definitions** sheet
-  and they work in every sheet.
+  (Settings › Definitions) and they work in every sheet.
 - **Formats.** `255 in hex`, `0.2 as fraction`, `1/3 to 2 dp`, `$490 rounded to nearest hundred`.
 
 <p align="center">
-  <img src="docs/images/features.png" width="880" alt="A sheet about buying a flat in the Cobalt theme: a mortgage payment per month, VAT, compound interest, workdays, the next public holiday and a custom unit for paint tins">
-  <br><sub>Mortgage, VAT, savings, workdays and a home-made unit, in the Cobalt theme.</sub>
+  <img src="docs/images/dark.png" width="760" alt="A sheet about buying a flat in dark mode: a monthly mortgage payment, VAT, compound interest, workdays, the next public holiday and a home-made unit for paint tins">
+  <br><sub>Mortgage, VAT, savings, workdays and a home-made unit, in dark mode.</sub>
 </p>
 
-It's built for a laptop: a sheet list on the side, autocomplete for units, currencies and your own
-names (Tab to insert), keyboard shortcuts, right-click menus (copy, convert to another unit, insert a
-reference) and a floating toolbar with a **display** that shows the current line's answer, or the sum of the lines
-you select. Sheets export as **PDF, a web page, CSV, Markdown or text**, or print with Ctrl+P.
-Five colour themes (Tangerine, your wallpaper, Cobalt, Lime and Berry), light and dark.
+Click an answer to copy it; right-click it to copy the line or convert it to another unit or
+currency. As you type, a suggestion for the word appears in grey after the cursor: Tab takes it.
+In a desktop window your sheets are listed on the left, newest first (Ctrl+B hides the list). The
+Share button copies the sheet with its answers, shares it as text or PDF, exports it (PDF, web
+page, CSV, Markdown or text) or prints it. Five colour themes (Tangerine, your wallpaper, Cobalt,
+Lime and Berry), light and dark.
 
 ## Made for the Googlebook
 
-<p align="center">
-  <img src="docs/images/dark.png" width="760" alt="Summa in dark mode, with its header drawn into the window's title bar next to the window buttons">
-  <br><sub>The sheet's title, the exchange-rate chip and the actions sit in the window's own title bar.</sub>
-</p>
-
-- **Lives in the title bar.** The sheet title and actions sit in the window's caption, next to
-  the system's window buttons; the empty space still drags the window.
+- **One calm bar on top.** The window's own title bar (app handle, window buttons) is painted to
+  match Summa's header just below it, with the sheet title, the mini calculator, Share and ⋮.
 - **A mini calculator that stays on top.** Open it from the Quick Settings tile, the launcher,
   the header or Ctrl+Shift+M. It keeps one scratch sheet and, on Android 17 desktops, stays above
-  your other windows (turn that off in Settings).
+  your other windows (its pin, or Settings).
 - **"Calculate" in every app.** Select `€49 in USD` in Chrome or any app, right-click › Calculate,
   and a small card shows the answer with Copy, Insert answer and Open in Summa.
 - **A window per sheet.** Right-click a sheet › Open in new window, or use the taskbar's New window.
 - **Drag answers** into Docs, Gmail or another sheet. Share text to Summa to start a sheet.
 - **Keyboard first**, with every shortcut listed in the system's shortcut helper (Search+/).
 - **Handoff:** start a sheet on your phone and carry on at the Googlebook (Android 17).
-
-<p align="center">
-  <img src="docs/images/phone.png" width="300" alt="Summa on a phone-sized window with its keypad: rounded number keys, operators and a cookie-shaped return key">
-  <br><sub>On phones: an Expressive keypad whose keys squash into rounded squares as you press them.</sub>
-</p>
+- **Phones too:** the same quiet sheet with the system keyboard, and your sheets one tap away.
 
 ## What you can type
 
@@ -147,7 +140,7 @@ To update, install a newer `Summa.apk` over the old one. Your sheets stay.
 | Ctrl+B | Show or hide the sheet list |
 | Ctrl+, | Settings |
 | Ctrl+P | Print, or save as PDF |
-| Tab / Esc | Insert or hide an autocomplete suggestion |
+| Tab or → / Esc | Take or hide the grey suggestion after the cursor |
 
 ## Privacy
 

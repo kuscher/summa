@@ -102,6 +102,16 @@ class Library(context: Context) {
         edit { idx -> idx.copy(sheets = idx.sheets.filter { it.id != id }) }
     }
 
+    /** Deleted sheets stay a while (Undo, backups) and go for good after [ageMs]. */
+    fun purgeTrash(ageMs: Long) {
+        val cutoff = System.currentTimeMillis() - ageMs
+        val gone = _state.value.sheets.filter { (it.trashedAt ?: Long.MAX_VALUE) < cutoff }
+        if (gone.isEmpty()) return
+        gone.forEach { file(it.id).delete() }
+        val ids = gone.map { it.id }.toSet()
+        edit { idx -> idx.copy(sheets = idx.sheets.filter { it.id !in ids }) }
+    }
+
     fun emptyTrash() {
         val gone = _state.value.sheets.filter { it.trashedAt != null }
         gone.forEach { file(it.id).delete() }

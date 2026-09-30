@@ -38,7 +38,6 @@ class DebugReceiver : BroadcastReceiver() {
             "delete" -> { app.library.deleteForever(arg); out("ok") }
             "screen" -> main.post { DebugHooks.screen(arg); out("ok") }
             "focus" -> main.post { DebugHooks.focus(); out("ok") }
-            "keypad" -> main.post { DebugHooks.keypad(); out("ok") }
             "mini" -> main.post { io.github.kuscher.summa.ui.MainActivity.openMini(act ?: context.applicationContext); out("ok") }
             "closemini" -> main.post { io.github.kuscher.summa.ui.MiniActivity.instance.get()?.finishAndRemoveTask(); out("ok") }
             "text" -> main.post {
@@ -68,8 +67,8 @@ class DebugReceiver : BroadcastReceiver() {
                 app.prefs.update { s ->
                     when (k) {
                         "theme" -> s.copy(theme = v); "dark" -> s.copy(dark = v); "lineNumbers" -> s.copy(lineNumbers = v == "true")
-                        "textSize" -> s.copy(textSize = v.toFloat()); "mono" -> s.copy(mono = v == "true"); "sidebar" -> s.copy(sidebar = v == "true")
-                        "degrees" -> s.copy(degrees = v == "true"); "decimals" -> s.copy(decimals = v.toInt())
+                        "textSize" -> s.copy(textSize = v.toFloat()); "sidebar" -> s.copy(sidebar = v == "true")
+                        "decimals" -> s.copy(decimals = v.toInt())
                         else -> s
                     }
                 }
@@ -103,6 +102,12 @@ class DebugReceiver : BroadcastReceiver() {
                 val a = act ?: return@post out("no activity")
                 val s = a.session ?: return@post out("no session")
                 io.github.kuscher.summa.ui.Export.print(a, io.github.kuscher.summa.ui.SheetSnapshot.of(s)); out("ok")
+            }
+            "shareuri" -> {
+                // The FileProvider path Share › Share as PDF uses, without opening the share sheet.
+                val dir = File(context.cacheDir, "exports").apply { mkdirs() }
+                val f = File(dir, "probe.pdf").apply { writeText("probe") }
+                out(androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".files", f).toString())
             }
             "defs" -> { val d = app.definitions.value; out("vars=${d.vars.keys} units=${d.units.map { it.names }} fns=${d.functions.keys}") }
             "holidays" -> { app.prefs.update { it.copy(holidays = arg) }; out(app.prefs.holidayCountry()) }

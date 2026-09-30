@@ -246,6 +246,26 @@ object Export {
         return pageNo
     }
 
+    // ------------------------------------------------------------------ sharing
+
+    /** Writes the sheet as a PDF in the cache and opens the system share sheet with it. */
+    fun sharePdf(context: Context, s: SheetSnapshot) {
+        val dir = java.io.File(context.cacheDir, "exports").apply { mkdirs() }
+        dir.listFiles()?.forEach { it.delete() }
+        val name = s.title.replace(Regex("[\\\\/:*?\"<>|]"), " ").trim().ifEmpty { "Summa sheet" } + ".pdf"
+        val f = java.io.File(dir, name)
+        val (w, h) = defaultPage(context)
+        f.outputStream().use { pdf(context, s, it, w, h) }
+        val uri = androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".files", f)
+        val send = android.content.Intent(android.content.Intent.ACTION_SEND)
+            .setType("application/pdf")
+            .putExtra(android.content.Intent.EXTRA_STREAM, uri)
+            .putExtra(android.content.Intent.EXTRA_SUBJECT, s.title)
+            .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        send.clipData = android.content.ClipData.newRawUri(name, uri)
+        context.startActivity(android.content.Intent.createChooser(send, "Share ${s.title}"))
+    }
+
     // ------------------------------------------------------------------ printing
 
     /** Opens the system print dialog (which can also save a PDF) with the sheet's pages. */
