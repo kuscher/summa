@@ -9,10 +9,10 @@
 | Package name | `io.github.kuscher.summa` |
 | Category | Productivity |
 | Tags (pick up to 5 from Play's list) | Calculator, Productivity, Unit converter, Currency converter, Notes |
-| Email address (required, shown publicly) | **[your support email: fill in]** |
+| Email address (required, shown publicly) | kuscher.projects@gmail.com |
 | Website | https://github.com/kuscher/summa |
 | Phone | leave empty |
-| Privacy policy URL | https://github.com/kuscher/summa/blob/main/PRIVACY.md |
+| Privacy policy URL | https://googlebook.studio/privacy/summa (the same text as ../PRIVACY.md) |
 | Countries | All countries (nothing in the app is region-restricted) |
 | Contains ads | No |
 | In-app purchases | No |

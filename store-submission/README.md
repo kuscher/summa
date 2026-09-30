@@ -18,8 +18,8 @@ Data safety, testing requirements for new personal accounts).
 | Chromebook / large-screen screenshots | [graphics/large-screen/](graphics/large-screen) (4) | 1920 × 1080, 16:9 |
 | 10-inch tablet screenshots | reuse [graphics/large-screen/](graphics/large-screen) | same spec as large screens |
 | 7-inch tablet screenshots | optional; the phone set also fits the spec | |
-| Store settings, contact, category | [forms/store-settings.md](forms/store-settings.md) | the support email is yours to fill in |
-| Privacy policy | [../PRIVACY.md](../PRIVACY.md) → https://github.com/kuscher/summa/blob/main/PRIVACY.md | required for every app |
+| Store settings, contact, category | [forms/store-settings.md](forms/store-settings.md) | contact email kuscher.projects@gmail.com |
+| Privacy policy | [../PRIVACY.md](../PRIVACY.md), published at https://googlebook.studio/privacy/summa | required for every app |
 | Data safety | [forms/data-safety.md](forms/data-safety.md) | "No data collected" |
 | Content rating (IARC) | [forms/content-rating.md](forms/content-rating.md) | expected: Everyone / PEGI 3 |
 | Other App content declarations | [forms/app-content.md](forms/app-content.md) | ads, audience, financial features… |

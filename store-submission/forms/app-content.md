@@ -2,7 +2,7 @@
 
 | Declaration | Answer |
 |---|---|
-| Privacy policy | https://github.com/kuscher/summa/blob/main/PRIVACY.md |
+| Privacy policy | https://googlebook.studio/privacy/summa (the same text as ../PRIVACY.md) |
 | Ads | No, the app contains no ads |
 | App access | All functionality is available without special access (no login) |
 | Content rating | See `content-rating.md` |
