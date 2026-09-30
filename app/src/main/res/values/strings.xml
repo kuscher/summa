@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Summa</string>
+    <string name="mini_name">Summa mini</string>
+    <string name="calculate">Calculate</string>
+    <string name="shortcut_new">New sheet</string>
+    <string name="shortcut_new_long">Start a new sheet</string>
+    <string name="shortcut_mini">Mini calculator</string>
+    <string name="shortcut_mini_long">Open the mini calculator</string>
+    <string name="tile_label">Summa mini</string>
+</resources>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android backs up the sheets and settings to the user's Google account (Auto Backup). -->
+<full-backup-content>
+    <include domain="file" path="sheets/"/>
+    <include domain="sharedpref" path="summa.xml"/>
+</full-backup-content>

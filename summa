@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Summa dev helper: build, install and drive the app on a Googlebook (or phone) over adb.
+#
+#   ./summa build [release]     assemble the debug (or release) APK
+#   ./summa test                engine tests on this machine (JUnit, no device)
+#   ./summa app                 build, install and launch
+#   ./summa install | launch | stop | uninstall
+#   ./summa debug CMD...        test hooks (DebugReceiver.kt): list, open ID, new, text B64, cursor A [B],
+#                               dump, shot NAME, screen sheet|settings, pref KEY VALUE
+#   ./summa sheet FILE          replace the open sheet's text with FILE (or - for stdin)
+#   ./summa shot [NAME] [OUT]   a PNG of Summa's own window (PixelCopy: no other apps, no pointer)
+#   ./summa logs [N]            Summa's log lines
+#   ./summa idle                seconds since the last user input on the device, and the focused window
+#
+# adb's server listens on a Unix socket (VSCodeBook's), never tcp:5037: the Linux terminal
+# forwards every TCP port to Android, where any app could reach it.
+set -euo pipefail
+cd "$(dirname "$(readlink -f "$0")")"
+PKG=io.github.kuscher.summa
+APK=app/build/outputs/apk/debug/app-debug.apk
+ENVF="$HOME/.config/vscodebook/android.env"
+[ -f "$ENVF" ] && . "$ENVF"
+export ADB_SERVER_SOCKET=${ADB_SERVER_SOCKET:-localfilesystem:$HOME/.local/state/vscodebook/adb.sock}
+TMP=${XDG_RUNTIME_DIR:-/tmp}
+
+serial() { cat "$HOME/.config/vscodebook/adb-serial" 2>/dev/null; }
+connect() {
+  local s; s="$(serial)"
+  if [ -n "$s" ] && adb -s "$s" shell true >/dev/null 2>&1; then echo "$s"; return; fi
+  vscodebook android connect >/dev/null 2>&1 || true
+  serial
+}
+A() { adb -s "$(connect)" "$@"; }
+dbg() {
+  A shell "am broadcast --user current -a $PKG.DEBUG -p $PKG --es c '$*'" >/dev/null
+  sleep "${WAIT:-0.6}"
+  A shell "logcat -d -s Summa:I" | grep "debug $1 ->" | tail -1 | sed 's/.*-> //'
+}
+
+build() { if [ "${1:-}" = release ]; then ./gradlew :app:assembleRelease --console=plain -q; else ./gradlew :app:assembleDebug --console=plain -q; fi; }
+
+install() {
+  local s; s="$(connect)"
+  adb -s "$s" shell settings put global verifier_verify_adb_installs 0
+  adb -s "$s" install -r "${1:-$APK}" || { adb -s "$s" shell settings put global verifier_verify_adb_installs 1; exit 1; }
+  adb -s "$s" shell settings put global verifier_verify_adb_installs 1
+}
+
+cmd=${1:-help}; shift || true
+case "$cmd" in
+  build) build "${1:-}" ;;
+  test) ./gradlew :engine:test --console=plain -q ;;
+  install) install "${1:-}" ;;
+  launch) A shell am start --user current -n "$PKG/.ui.MainActivity" >/dev/null ;;
+  stop) A shell am force-stop "$PKG" ;;
+  uninstall) A shell pm uninstall "$PKG" || true ;;
+  app) build && install && A shell am start --user current -n "$PKG/.ui.MainActivity" >/dev/null ;;
+  debug) A logcat -c; dbg "$@" ;;
+  sheet)
+    f=${1:--}; b64=$( (if [ "$f" = - ]; then cat; else cat "$f"; fi) | base64 -w0)
+    A logcat -c; dbg text "$b64" ;;
+  shot)
+    name=${1:-shot}; out=${2:-$TMP/summa-$name.png}
+    A logcat -c; path=$(WAIT=1.2 dbg shot "$name")
+    u=$(A shell am get-current-user | tr -d '\r')
+    A exec-out run-as "$PKG" --user "$u" cat "cache/$name.png" > "$out" && echo "$out" ;;
+  logs) A shell "logcat -d -s Summa:I AndroidRuntime:E" | tail -n "${1:-40}" ;;
+  idle)
+    A shell dumpsys power | grep -E "lastUserActivityTime=|mWakefulness=" | head -2
+    A shell "dumpsys window | grep -E 'mCurrentFocus' | head -1" ;;
+  *) sed -n '3,17p' "$0" ;;
+esac

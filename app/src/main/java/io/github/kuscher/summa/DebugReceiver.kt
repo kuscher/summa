@@ -1,0 +1,84 @@
+package io.github.kuscher.summa
+
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.graphics.Bitmap
+import android.os.Handler
+import android.os.Looper
+import android.util.Base64
+import android.util.Log
+import android.view.PixelCopy
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.ui.text.TextRange
+import io.github.kuscher.summa.ui.DebugHooks
+import io.github.kuscher.summa.ui.MainActivity
+import java.io.File
+import java.io.FileOutputStream
+
+/**
+ * Test hooks for driving Summa from adb (`./summa debug …`). The receiver requires the DUMP
+ * permission, which only the shell (adb) holds, so other apps can't use it.
+ *   list | open ID | new | text BASE64 | cursor N | dump | shot [NAME] | screen sheet|settings | pref KEY VALUE
+ */
+class DebugReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        val cmd = intent.getStringExtra("c") ?: return
+        val parts = cmd.split(' ', limit = 2)
+        val arg = parts.getOrNull(1).orEmpty()
+        val app = SummaApp.instance
+        val act = MainActivity.current.get()
+        val main = Handler(Looper.getMainLooper())
+        fun out(s: String) { Log.i(TAG, "debug ${parts[0]} -> $s") }
+        when (parts[0]) {
+            "list" -> out(app.library.state.value.sheets.joinToString(" | ") { "${it.id}:${it.title}${if (it.trashedAt != null) " (trash)" else ""}" })
+            "open" -> main.post { DebugHooks.open(arg); out("ok") }
+            "new" -> main.post { DebugHooks.newSheet(); out("ok") }
+            "screen" -> main.post { DebugHooks.screen(arg); out("ok") }
+            "text" -> main.post {
+                val s = act?.session ?: return@post out("no session")
+                s.state.setTextAndPlaceCursorAtEnd(String(Base64.decode(arg, Base64.DEFAULT), Charsets.UTF_8))
+                out("ok")
+            }
+            "cursor" -> main.post {
+                val s = act?.session ?: return@post out("no session")
+                val (a, b) = arg.split(' ').map { it.toInt() }.let { it[0] to (it.getOrNull(1) ?: it[0]) }
+                s.state.edit { selection = TextRange(a.coerceIn(0, length), b.coerceIn(0, length)) }
+                out("ok")
+            }
+            "dump" -> main.post {
+                val ev = act?.session?.evaluated ?: return@post out("no result")
+                ev.result.lines.forEachIndexed { i, l -> Log.i(TAG, "line ${i + 1}: ${l.answer ?: "∅"}${l.error?.let { "  ($it)" } ?: ""}") }
+                out("${ev.result.lines.size} lines")
+            }
+            "pref" -> {
+                val (k, v) = arg.split(' ', limit = 2).let { it[0] to it.getOrElse(1) { "" } }
+                app.prefs.update { s ->
+                    when (k) {
+                        "theme" -> s.copy(theme = v); "dark" -> s.copy(dark = v); "lineNumbers" -> s.copy(lineNumbers = v == "true")
+                        "textSize" -> s.copy(textSize = v.toFloat()); "mono" -> s.copy(mono = v == "true"); "sidebar" -> s.copy(sidebar = v == "true")
+                        "degrees" -> s.copy(degrees = v == "true"); "decimals" -> s.copy(decimals = v.toInt())
+                        else -> s
+                    }
+                }
+                out("ok")
+            }
+            "shot" -> main.post {
+                // Our own window only (PixelCopy of this activity's surface): no other apps, no pointer.
+                val a = act ?: return@post out("no activity")
+                val v = a.window.decorView
+                val bmp = Bitmap.createBitmap(v.width, v.height, Bitmap.Config.ARGB_8888)
+                PixelCopy.request(a.window, bmp, { res ->
+                    if (res != PixelCopy.SUCCESS) { out("failed $res"); return@request }
+                    val dir = a.cacheDir
+                    val f = File(dir, (arg.ifBlank { "shot" }) + ".png")
+                    FileOutputStream(f).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                    out(f.absolutePath)
+                }, main)
+            }
+            else -> out("unknown")
+        }
+    }
+
+    companion object { const val TAG = "Summa" }
+}

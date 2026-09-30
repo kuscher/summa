@@ -1,0 +1,84 @@
+package io.github.kuscher.summa
+
+import android.app.Application
+import io.github.kuscher.summa.data.Library
+import io.github.kuscher.summa.data.Prefs
+import io.github.kuscher.summa.data.RatesRepo
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+
+class SummaApp : Application() {
+    lateinit var library: Library; private set
+    lateinit var prefs: Prefs; private set
+    lateinit var rates: RatesRepo; private set
+    val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    override fun onCreate() {
+        super.onCreate()
+        instance = this
+        library = Library(this)
+        prefs = Prefs(this)
+        rates = RatesRepo(this, prefs, scope)
+        if (!prefs.value.firstRunDone) {
+            if (library.state.value.sheets.isEmpty()) {
+                library.create(Samples.LISBON)
+                library.create(Samples.WELCOME).also { prefs.putString("lastSheet", it.id) }
+            }
+            prefs.update { it.copy(firstRunDone = true) }
+        }
+    }
+
+    companion object {
+        lateinit var instance: SummaApp; private set
+    }
+}
+
+object Samples {
+    val WELCOME = """
+        # Welcome to Summa
+        Type maths the way you'd say it. Answers appear on the right.
+
+        Coffee: 2 × $4.50
+        Lunch: $12 + 15% tip
+        sum
+
+        # Units and money
+        5 km in miles
+        72 °F in °C
+        €49 in USD
+        1,200 sq ft in m²
+
+        # Dates and time
+        days until Dec 25
+        3 pm Lisbon in Tokyo
+        today + 3 weeks
+
+        # Your own names
+        rate = $85/hour
+        work = 6.5 hours
+        rate × work
+        + 20% tax
+
+        // Lines that start with // are notes. Click an answer to copy it,
+        // right-click it for more. Ctrl+/ turns a line into a note.
+    """.trimIndent()
+
+    val LISBON = """
+        # Lisbon weekend
+        Flights: 2 × €189
+        Hotel: 3 nights × $142 in EUR
+        Tram passes: 6 × €6.80
+        Pastéis de nata: 12 × €1.40
+        sum
+        Split 3 ways: line6 / 3
+
+        # Road trip to Porto
+        distance = 313 km
+        consumption = 6.4 L/100 km
+        fuel = distance × consumption
+        fuel × €1.79/L
+        distance in miles
+        Leave 8:30 am + 3 h 20 min
+    """.trimIndent()
+}

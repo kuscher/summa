@@ -1,0 +1,37 @@
+# Builds Summa and runs the engine's golden corpus on every push and pull request.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: SDK packages
+        run: $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-37.0" "build-tools;36.0.0" > /dev/null
+      - name: Engine tests (golden corpus, fuzz, speed)
+        run: ./gradlew :engine:test --no-daemon --console=plain
+      - name: Build the app
+        run: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.jvmargs=-Xmx4g -XX:+UseParallelGC -Dfile.encoding=UTF-8" >> ~/.gradle/gradle.properties
+          ./gradlew :app:assembleDebug --no-daemon --console=plain
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: summa-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
