@@ -8,6 +8,12 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -69,4 +75,21 @@ fun numberOnly(answer: String, decimalSep: Char, groupSep: Char): String {
         c == 'e' && sb.isNotEmpty() -> sb.append(c)
     }
     return sb.toString().ifEmpty { answer }
+}
+
+/** Summa's app icon (the launcher's two layers through a circle), for places inside the app. */
+@Composable
+fun SummaMark(size: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier) {
+    androidx.compose.foundation.layout.Box(
+        modifier.size(size).clip(androidx.compose.foundation.shape.CircleShape)
+            .semantics { contentDescription = "Summa" },
+    ) {
+        // The adaptive layers are 108 dp with the middle 72 dp visible: scale 1.5× to fill.
+        for (res in listOf(io.github.kuscher.summa.R.drawable.ic_launcher_background, io.github.kuscher.summa.R.drawable.ic_launcher_foreground)) {
+            androidx.compose.foundation.Image(
+                androidx.compose.ui.res.painterResource(res), contentDescription = null,
+                modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = 1.5f; scaleY = 1.5f },
+            )
+        }
+    }
 }

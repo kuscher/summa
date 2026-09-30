@@ -199,8 +199,12 @@ fun About() {
     val scheme = MaterialTheme.colorScheme
     var credits by remember { mutableStateOf(false) }
     Column(Modifier.padding(top = 28.dp)) {
+        androidx.compose.foundation.layout.Row(Modifier.padding(bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            io.github.kuscher.summa.ui.SummaMark(32.dp)
+            Text("Summa ${BuildConfig.VERSION_NAME}", Modifier.padding(start = 10.dp), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight(700)))
+        }
         Text(
-            "Summa ${BuildConfig.VERSION_NAME} · A personal hobby project by Alexander Kuscher, not affiliated with or endorsed by any employer. " +
+            "A personal hobby project by Alexander Kuscher, not affiliated with or endorsed by any employer. " +
                 "Developed entirely on a Googlebook. Inspired by Soulver and Numi.",
             style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant,
         )

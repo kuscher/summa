@@ -60,7 +60,7 @@ class CalculateActivity : ComponentActivity() {
                 Surface(shape = RoundedCornerShape(28.dp), color = scheme.surfaceContainerHigh, modifier = Modifier.width(420.dp)) {
                     Column(Modifier.padding(22.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            SymIcon(Sym.CALCULATE, size = 20.sp, filled = true, tint = scheme.primary)
+                            SummaMark(22.dp)
                             Text("Summa", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight(700)))
                         }
                         Spacer(Modifier.padding(top = 12.dp))

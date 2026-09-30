@@ -39,6 +39,8 @@ class DebugReceiver : BroadcastReceiver() {
             "screen" -> main.post { DebugHooks.screen(arg); out("ok") }
             "focus" -> main.post { DebugHooks.focus(); out("ok") }
             "mini" -> main.post { io.github.kuscher.summa.ui.MainActivity.openMini(act ?: context.applicationContext); out("ok") }
+            "tomini" -> main.post { act?.let { io.github.kuscher.summa.ui.MainActivity.switchToMini(it) }; out(if (act != null) "ok" else "no activity") }
+            "tobig" -> main.post { io.github.kuscher.summa.ui.MiniActivity.instance.get()?.backToBig(); out("ok") }
             "closemini" -> main.post { io.github.kuscher.summa.ui.MiniActivity.instance.get()?.finishAndRemoveTask(); out("ok") }
             "text" -> main.post {
                 val s = act?.session ?: return@post out("no session")
@@ -76,16 +78,19 @@ class DebugReceiver : BroadcastReceiver() {
             }
             "shot" -> main.post {
                 // Our own window only (PixelCopy of this activity's surface): no other apps, no pointer.
-                val a = act ?: return@post out("no activity")
+                // Whichever Summa window is open: the big one, or the mini one.
+                val a: android.app.Activity = act?.takeIf { !it.isDestroyed && !it.isFinishing }
+                    ?: io.github.kuscher.summa.ui.MiniActivity.instance.get()?.takeIf { !it.isDestroyed && !it.isFinishing }
+                    ?: return@post out("no activity")
                 val v = a.window.decorView
                 val bmp = Bitmap.createBitmap(v.width, v.height, Bitmap.Config.ARGB_8888)
-                PixelCopy.request(a.window, bmp, { res ->
+                try { PixelCopy.request(a.window, bmp, { res ->
                     if (res != PixelCopy.SUCCESS) { out("failed $res"); return@request }
                     val dir = a.cacheDir
                     val f = File(dir, (arg.ifBlank { "shot" }) + ".png")
                     FileOutputStream(f).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
                     out(f.absolutePath)
-                }, main)
+                }, main) } catch (e: Exception) { out("failed ${e.message}") }
             }
             "export" -> main.post {
                 val s = act?.session ?: return@post out("no session")

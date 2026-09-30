@@ -93,6 +93,7 @@ class MiniActivity : ComponentActivity() {
                                 Text("Mini", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight(650)))
                                 Spacer(Modifier.weight(1f))
                                 status?.let { Text(it, Modifier.padding(horizontal = 6.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
+                                HeaderButton(Sym.OPEN_IN_FULL, "Back to the big window") { backToBig() }
                                 if (Build.VERSION.SDK_INT >= 37) {
                                     Box(
                                         Modifier.size(38.dp).clip(CircleShape)
@@ -120,6 +121,20 @@ class MiniActivity : ComponentActivity() {
     }
 
     companion object { var instance: java.lang.ref.WeakReference<MiniActivity> = java.lang.ref.WeakReference(null) }
+
+    /** Back to the big window (on the sheet you had open), closing the mini one. */
+    fun backToBig() {
+        startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        finishAndRemoveTask()
+    }
+
+    override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
+        // Ctrl+Shift+M goes back, the same keys that opened the mini window.
+        if (event.action == android.view.KeyEvent.ACTION_DOWN && event.keyCode == android.view.KeyEvent.KEYCODE_M && event.isCtrlPressed && event.isShiftPressed) {
+            backToBig(); return true
+        }
+        return super.dispatchKeyEvent(event)
+    }
 
     private fun togglePin(quiet: Boolean = false) {
         if (Build.VERSION.SDK_INT < 37) return

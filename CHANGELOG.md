@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2 (2026-09-30)
+
+- **Big window and mini window take turns:** opening the mini calculator from the header (or
+  Ctrl+Shift+M) closes the big window; the mini window's ⤢ button, or Ctrl+Shift+M again, closes
+  it and brings the big window back on the sheet you had open.
+- The new icon inside the app too: on the Calculate card and in Settings › About.
+
 ## 1.1.1 (2026-09-30)
 
 - **A simpler icon:** one circle in four quadrants, each a slightly different tangerine, with

@@ -3,7 +3,10 @@
 State and next steps, for whoever continues (human or Claude). Keep this current at every milestone.
 Read CLAUDE.md first (layout, dev loop, gotchas).
 
-## Where things are (v1.1, 2026-09-30)
+## Where things are (v1.2, 2026-09-30)
+- 1.2: the big window and the mini calculator take turns (`MainActivity.switchToMini`,
+  `MiniActivity.backToBig`); the icon (1.1.1: four tangerine quadrants with + − × ÷, `tools/logo.py`)
+  also appears in the app via `SummaMark`. Release steps: docs/RELEASING.md.
 - 1.1 simplified the app to the approved Numi-like design (canvas
   https://claude.ai/artifact/3JoM2SnRZyabq32f2XaFmt): no floating UI, plain answers, ghost-text
   autocomplete, sheet history on the left, Share + ⋮ menus, 11 settings. The engine didn't change.

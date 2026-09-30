@@ -78,9 +78,10 @@ Lime and Berry), light and dark.
 
 - **One calm bar on top.** The window's own title bar (app handle, window buttons) is painted to
   match Summa's header just below it, with the sheet title, the mini calculator, Share and ⋮.
-- **A mini calculator that stays on top.** Open it from the Quick Settings tile, the launcher,
-  the header or Ctrl+Shift+M. It keeps one scratch sheet and, on Android 17 desktops, stays above
-  your other windows (its pin, or Settings).
+- **A mini calculator that stays on top.** Open it from the header or Ctrl+Shift+M and the big
+  window makes way for it; its ⤢ button (or Ctrl+Shift+M again) brings the big window back. The
+  Quick Settings tile and the launcher open it too. It keeps one scratch sheet and, on Android 17
+  desktops, stays above your other windows (its pin, or Settings).
 - **"Calculate" in every app.** Select `€49 in USD` in Chrome or any app, right-click › Calculate,
   and a small card shows the answer with Copy, Insert answer and Open in Summa.
 - **A window per sheet.** Right-click a sheet › Open in new window, or use the taskbar's New window.
@@ -130,7 +131,7 @@ To update, install a newer `Summa.apk` over the old one. Your sheets stay.
 | Search+/ | See every shortcut (the system's shortcut helper) |
 | Ctrl+N | New sheet |
 | Ctrl+Shift+N | New window |
-| Ctrl+Shift+M | Mini calculator |
+| Ctrl+Shift+M | Swap to the mini calculator, and back |
 | Ctrl+K | Search sheets |
 | Ctrl+Shift+C | Copy the current line's answer |
 | Ctrl+/ | Turn lines into notes (and back) |
@@ -171,6 +172,22 @@ Everything here was written, built and tested on a Googlebook, in its built-in L
 - Screenshots in this README are the app's own window, captured on the device.
 
 <sub>With a little help from Claude.</sub>
+
+## Build
+
+Needs JDK 21 and the Android SDK (platform 37).
+
+```sh
+./gradlew :engine:test            # the calculation engine and its 386 examples, no device needed
+./gradlew :app:assembleDebug      # app/build/outputs/apk/debug/app-debug.apk
+./gradlew :app:assembleRelease    # signed if ~/.config/summa/keystore.jks and keystore.pass exist
+```
+
+Builds you make yourself are signed with your own key, so install them in place of a release
+(uninstall first) rather than over it. `./summa` is the development helper (build, install, test
+hooks, window captures) for a Googlebook connected over Wireless debugging.
+[CLAUDE.md](CLAUDE.md) explains how the code is organised, and [docs/RELEASING.md](docs/RELEASING.md)
+how releases are made.
 
 ## About this project
 

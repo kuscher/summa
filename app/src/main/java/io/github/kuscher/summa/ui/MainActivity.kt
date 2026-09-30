@@ -202,6 +202,13 @@ class MainActivity : ComponentActivity() {
             context.startActivity(i)
         }
 
+        /** From a big window: opens the mini calculator and closes this window (the mini can bring it back). */
+        fun switchToMini(activity: MainActivity) {
+            activity.session?.saveNow()
+            openMini(activity)
+            activity.finishAndRemoveTask()
+        }
+
         /** Opens the mini calculator, bottom-right of the screen. */
         fun openMini(context: Context) {
             val i = Intent(context, MiniActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -283,7 +290,7 @@ fun App(activity: MainActivity, requested: String?) {
                             ctrl && e.key == Key.N -> { newSheet(); true }
                             ctrl && e.key == Key.K -> { if (!settings.sidebar) app.prefs.update { it.copy(sidebar = true) }; runCatching { searchFocus.requestFocus() }; showList = true; true }
                             ctrl && e.key == Key.Comma -> { screen = "settings"; true }
-                            ctrl && e.isShiftPressed && e.key == Key.M -> { MainActivity.openMini(activity); true }
+                            ctrl && e.isShiftPressed && e.key == Key.M -> { MainActivity.switchToMini(activity); true }
                             ctrl && e.isShiftPressed && e.key == Key.C -> {
                                 val s = session ?: return@onPreviewKeyEvent false
                                 val ans = currentAnswer(s)
@@ -323,7 +330,7 @@ fun App(activity: MainActivity, requested: String?) {
                                     SheetHeader(session, meta, status, onBack = null, onToggleSidebar = { app.prefs.update { it.copy(sidebar = !it.sidebar) } },
                                         onSettings = { screen = "settings" }, onMessage = ::message,
                                         onNew = ::newSheet, onDelete = ::delete,
-                                        onNewWindow = { MainActivity.openInNewWindow(activity, it) }, onMini = { MainActivity.openMini(activity) })
+                                        onNewWindow = { MainActivity.openInNewWindow(activity, it) }, onMini = { MainActivity.switchToMini(activity) })
                                 }
                             }
                             Row(Modifier.weight(1f)) {
