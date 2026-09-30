@@ -1,0 +1,348 @@
+# Summa golden corpus. input<TAB>expected answer of the last line. "⏎" separates lines; "∅" = no answer.
+# Context: now = Wed 30 Sep 2026 10:00 Europe/Berlin, en-US formats, $ = USD, trig in radians.
+# Test rates (1 EUR =): USD 1.2, GBP 0.8, JPY 160, CAD 1.5, CHF 0.9, BTC 0.00001.
+# Sources: Soulver 4 docs, Numi docs/CLI (see docs/research). Answers are in Summa's own format.
+
+## operators and numbers
+8 times 9	72
+1 meter 20 cm	1.2 m
+6 (3)	18
+6 multiplied by 7	42
+84 divided by 2	42
+2 ^ 10	1,024
+6 & 3	2
+6 | 3	7
+6 xor 3	5
+1 << 4	16
+256 >> 2	64
+10 mod 3	1
+6*-3	-18
+2 + 3 * 4	14
+(2 + 3) * 4	20
+30 plus 20	50
+3,000 minus 12	2,988
+3 multiplied by 4	12
+1,000 divided by 200	5
+3 to the power of 2	9
+2^64	18,446,744,073,709,551,616
+10 / 3	3.33
+0.1 + 0.2	0.3
+1/3	0.333
+5!	120
+1_000_000 + 2_000	1,002,000
+1e3	1,000
+2.5e-4	0.00025
+-2^2	-4
+2 × 3	6
+2 x 3	6
+3x5	15
+1 1/2 + 1	2.5
+five hundred thirty three + two hundred and twelve	745
+1.4 million	1,400,000
+3 million + 10%	3,300,000
+2 dozen	24
+100²	10,000
+
+## bases and formats
+0b110111011	443
+0o1435343 in hex	0x63AE3
+255 in hex	0xFF
+255 in octal	0o377
+255 in bin	0b11111111
+99 in binary	0b1100011
+0x9F31 to decimal	40,753
+0xCAFE_F00D to decimal	3,405,705,229
+1234567 in sci	1.234567e6
+10500 in sci	1.05e4
+2/10 as fraction	1/5
+0.2 as fraction	1/5
+0.35 as %	35%
+2/5 as percent	40%
+35% as num	0.35
+20% as dec	0.2
+20/5 as multiplier	4x
+1/3 to 2 dp	0.33
+pi to 5 digits	3.14159
+5.5 rounded	6
+5.5 rounded down	5
+5.5 rounded up	6
+37 to nearest 10	40
+$490 rounded to nearest hundred	$500.00
+2,100 to nearest thousand	2,000
+21 rounded up to nearest 5	25
+17 rounded down to nearest 3	15
+$100 as number	100
+
+## percentages
+$10 - 40%	$6.00
+100 + 10%	110
+20% of $10	$2.00
+5% on $30	$31.50
+20% on $10	$12.00
+6% off 40 EUR	€37.60
+$50 as a % of $100	50%
+$70 as a % on $20	250%
+$20 as a % off $70	71.43%
+5% of what is 6 EUR	€120.00
+5% on what is 6 EUR	€5.71
+5% off what is 6 EUR	€6.32
+120 as a % increase of 100	20%
+80 as a % decrease of 100	20%
+20% from 50	10
+10 pct of 200	20
+20% of what is 30 cm	150 cm
+8 / (45 - 20%)	0.222
+50% of 50%	25%
+10% of 200	20
+25% × 200	50
+15% of 490	73.5
+200 + 10%	220
+10% on 200	220
+200 - 10%	180
+10% off 200	180
+$55 - 10% discount	$49.50
+$1,200 + 15% tax	$1,380.00
+20% discount off $500	$400.00
+20 is 10% of what	200
+180 is 10% off what	200
+220 is 10% on what	200
+$150 is 25% on what	$120.00
+50 to 75 is what %	50%
+40 to 90 as %	125%
+180 is what % off 200	10%
+180 is what % on 150	20%
+20 is what % of 200	10%
+20 as a % of 200	10%
+40 is what % of 90	44.44%
+10% + 20%	30%
+90% - 40%	50%
+30% + 0.4	70%
+50% × 30	15
+30 × 50%	15
+2/3 of 600	400
+half of 175	87.5
+% increase from 10 to 20	100%
+% decrease from 20 to 10	50%
+15% tip on €48.60	€55.89
+
+## variables, references, totals
+discount = 10%⏎cost = $550⏎cost - discount	$495.00
+monthly rent = $1,900⏎monthly rent / 4 people	$475.00
+v = $20⏎v2 = 5%⏎v times 7 - v2	$133.00
+hours=8⏎hours * 20$	$160.00
+x = 5⏎x += 3⏎x	8
+Line 1: $10⏎Line 2: $15⏎Result: sum	$25.00
+Line 1: $10⏎Line 2: $20⏎Result: average	$15.00
+$10⏎⏎$15⏎sum	$15.00
+# Dinner⏎Mains $24 × 8 people⏎Wine $18 × 3 bottles⏎Dessert $7 × 8 people⏎subtotal	$302.00
+$500⏎10%⏎sum	$550.00
+1500 cm in inches⏎prev * 2	1,181.1 in
+100⏎+ 50	150
+Last quarter $42k⏎This quarter $48.3k⏎line1 to line2 as %	15%
+total of 3, 4, 7 and 9	23
+average of 36, 42, 19 and 81	44.5
+count of 1, 2, 3, 4, 5	5
+median of 10, 20 and 30	20
+max(3, 8, 2)	8
+gcd of 20 and 30	10
+lcm of 5 and 8	40
+$20 lunch #food⏎$30 dinner #food⏎total of #food	$50.00
+distance = 313 km⏎consumption = 6.4 L/100 km⏎fuel = distance × consumption	20.03 L
+distance = 313 km⏎consumption = 6.4 L/100 km⏎fuel = distance × consumption⏎fuel × €1.79/L	€35.86
+distance = 313 km⏎distance in miles	194.49 mi
+Flights: 2 × €189⏎Hotel: 3 nights × $142 in EUR⏎Tram passes: 6 × €6.80⏎Pastéis de nata: 12 × €1.40⏎sum	€790.60
+Flights: 2 × €189⏎Hotel: 3 nights × $142 in EUR⏎sum⏎Split 3 ways: line3 / 3	€244.33
+
+## notes, labels and comments
+# This is header	∅
+// This is comment	∅
+---	∅
+$275 for the "Model 227"	$275.00
+Price: $11 + $34.45	$45.45
+$19 for breakfast + $22 for the uber	$41.00
+I spent $128 + $45 on clothes // on 10-02-2019	$173.00
+$10 for lunch + 15% tip	$11.50
+$25/hour * 14 hours of work	$350.00
+lunch was $55 + 25% tip	$68.75
+$3k earnings ÷ 5 people	$600.00
+$999 (for iPhone 16)	$999.00
+Boing "747" is $386.8M	$386,800,000.00
+$3k net (3 partners)	$3,000.00
+$7k in expenses # including $2k VAT paid	$7,000.00
+Cost of 128 GB iPhone 16: $999	$999.00
+2 + 2 = 4	4
+
+## units
+20 inches in cm	50.8 cm
+5 km in miles	3.11 mi
+5 feet 11 inches in cm	180.34 cm
+1 m 20 cm in inches	47.24 in
+1 mile in km	1.61 km
+1 nautical mile in m	1,852 m
+1 furlong in yards	220 yd
+1 chain in feet	66 ft
+20 sq cm	20 cm²
+30 square inches	30 in²
+11 sqm	11 m²
+1 hectare in acres	2.47 ac
+20 cu cm	20 cm³
+10 m × 10 m	100 m²
+10 ft x 12 ft x 6 in	60 ft³
+1 gallon in liters	3.79 L
+2 L in cups	8.45 cups
+1 quart in l	0.946 L
+1 kg in pounds	2.2 lb
+1 stone in kg	6.35 kg
+1 tonne in lb	2,204.62 lb
+0 °C in °F	32°F
+100 C in F	212°F
+32 F in C	0°C
+300 K in C	26.85°C
+45° in rad	0.785 rad
+1 rad in degrees	57.3°
+1 GiB in MB	1,073.74 MB
+1 KiB in bytes	1,024 B
+100 Mb in MB	12.5 MB
+8 bits in bytes	1 B
+1 PiB in TiB	1,024 TiB
+round(1 month in days)	30 days
+1 week in hours	168 h
+90 min in hours	1.5 h
+3 hours 20 min in min	200 min
+2 days in seconds	172,800 s
+1 day - 3 hours	21 h
+2 hours + 30 min	2 h 30 min
+10 km in m	10,000 m
+100 pounds in kg	45.36 kg
+65 kg in pounds	143.3 lb
+75 mph in km/hour	120.7 km/h
+32 C to F	89.6°F
+300 + 20 km	320 km
+$20 + 30	$50.00
+1km + 1,000m	2 km
+10 km + 100 m	10.1 km
+3 hours / day	3 h/day
+$99 per week	$99.00/week
+$20/day + $300/week	$440.00/week
+€30/day in €/month	€913.11/month
+90 km / 3 day	30 km/day
+$50/week × 12 weeks	$600.00
+30 hours at $30/hour	$900.00
+$500 at $20/hour	25 h
+$30 × 4 days	$120.00
+3 min × 15 mph	0.75 mi
+12 pt in px	16px
+1 inch in px	96px
+1.2 em in px	19.2px
+em = 20px⏎1.2 em in px	24px
+ppi = 326⏎1 cm in px	128.35px
+1 cm in px at 326 ppi	128.35px
+1.5 rem in px	24px
+72 pt in inch	1 in
+6.4 L/100 km in mpg	36.75 mpg
+30 mpg in km/L	12.75 km/L
+60 km/h × 2 h	120 km
+5 km/h in m/s	1.39 m/s
+100 kWh in MJ	360 MJ
+1 hp in kW	0.746 kW
+1 atm in psi	14.7 psi
+1 TB / 4.2 GB	238.1
+20 GB at 10 MB/s	33 min 20 s
+250 g + 1 kg	1.25 kg
+1 lb in oz	16 oz
+3 feet in cm	91.44 cm
+5 ft 11 in	5.92 ft
+
+## money
+$30 in Euro	€25.00
+10 USD in EUR	€8.33
+100 EUR in USD	$120.00
+20 GBP in CAD	CA$37.50
+10$	$10.00
+USD 5	$5.00
+10 USD + 15 EUR	€23.33
+$200 + €200	€366.67
+100 GBP in JPY	¥20,000
+1 BTC in USD	$120,000.00
+$20 in euro - 5% discount	€15.83
+50 EUR in USD at 1.05 USD/EUR	$52.50
+$2k	$2,000.00
+2M eur	€2,000,000.00
+$5m	$5,000,000.00
+€6M	€6,000,000.00
+$9bn	$9,000,000,000.00
+30 USD in €	€25.00
+usd eur	€0.83
+20 euros in dollars	$24.00
+3 bucks	$3.00
+1,000 yen in euros	€6.25
+100 swiss francs in eur	€111.11
+0.5 BTC in EUR	€50,000.00
+$100 / 4	$25.00
+$100 / $25	4
+$10 × 3	$30.00
+
+## dates and times
+today	Wed, Sep 30, 2026
+today + 2 weeks	Wed, Oct 14, 2026
+today - 3 days	Sun, Sep 27, 2026
+tomorrow	Thu, Oct 1, 2026
+yesterday	Tue, Sep 29, 2026
+next friday + 2 weeks	Fri, Oct 16, 2026
+next friday	Fri, Oct 2, 2026
+days until Dec 25	86 days
+Dec 25 - today	86 days
+Jan 1 to Mar 1	59 days
+weeks until Dec 25	12.29 weeks
+today + 1 month	Fri, Oct 30, 2026
+Jan 31 2027 + 1 month	Sun, Feb 28, 2027
+2026-12-25	Fri, Dec 25, 2026
+25 December 2026	Fri, Dec 25, 2026
+3 days ago	Sun, Sep 27, 2026
+2 weeks from now	Wed, Oct 14, 2026
+8:30 am + 3 h 20 min	11:50 am
+9:15 + 45 min	10:00 am
+11:30 pm + 2 hours	Tomorrow 1:30 am
+5pm - 9:30am	7 h 30 min
+3 pm Lisbon in Munich	4:00 pm
+2:30 pm HKT in Berlin	8:30 am
+3:00 pm Moscow in PST	5:00 am
+3:30 pm BST in SGT	10:30 pm
+6pm Sydney in Chicago	3:00 am
+4:30 pm Tokyo in Munich	9:30 am
+now	10:00 am
+time in Tokyo	5:00 pm
+New York time	4:00 am
+now in New York	4:00 am
+fromunix(1446587186)	Tue, Nov 3, 2015 10:46:26 pm
+today as timestamp	1790762400
+3 workdays after today	Mon, Oct 5, 2026
+
+## functions
+sqrt 16	4
+sqrt(16)	4
+cbrt(343)	7
+square root of 81	9
+cube root of 27	3
+root 2 (8)	2.83
+abs(-4)	4
+ln 3	1.1
+log 1000	3
+log 2 (10)	3.32
+fact 5	120
+round 3.45	3
+ceil 3.76	4
+floor 2.56	2
+sin(90 degrees)	1
+sin 45°	0.707
+cos(60°)	0.5
+sin (90)	0.894
+sind(90)	1
+asind(0.5)	30°
+sinh 3	10.02
+pi	3.14
+e	2.72
+2 pi	6.28
+2sin(pi/6)	1
+gcd(10, 20, 5)	5
+sqrt(16 m²)	4 m
