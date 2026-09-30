@@ -16,7 +16,7 @@ cp app/build/outputs/apk/release/app-release.apk "$OUT/Summa.apk"
 cp "$OUT/Summa.apk" "$OUT/Summa-$VERSION.apk"
 BT=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)
 CERT=$("$BT/apksigner" verify --print-certs "$OUT/Summa.apk" | sed -n 's/.*certificate SHA-256 digest: //p' | head -1)
-EXPECT=57247236a8e5438c38f6181bf6625777c2c91db02b16f052e107745e6b5e6d32
+EXPECT=1deaba8d673fb4f100c3d97478d22eee2550cde54dc26b6599c3f34b5ff5790f
 [ "$CERT" = "$EXPECT" ] || { echo "wrong signing certificate: $CERT"; exit 1; }
 (cd "$OUT" && sha256sum Summa.apk "Summa-$VERSION.apk" > SHA256SUMS)
 ls -la "$OUT"; cat "$OUT/SHA256SUMS"

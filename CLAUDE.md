@@ -47,8 +47,8 @@ Android 12+. Plain APK, Kotlin + Jetpack Compose, Material 3 Expressive (materia
 - The user works on the HP while I test: check `./summa idle` first; don't inject keys.
 - Debug builds are signed with the release key (~/.config/summa), so they replace releases and keep sheets.
 - Release: bump `versionName`/`versionCode`, add `docs/release-notes/X.md` + CHANGELOG, `tools/release.sh --publish`.
-  Key: ~/.config/summa/keystore.jks + keystore.pass (alias summa, cert SHA-256 57:24:72:36:…:5E:6D:32),
-  backed up to a private folder; the password belongs in the user's password manager.
+  Key: ~/.config/summa/keystore.jks + keystore.pass (alias summa, cert SHA-256 1D:EA:BA:8D:…:F5:79:0F),
+  backed up with its password to a private folder. A new key since 2026-09-30, the one Google Play signs with too; installs of 1.3.1 and earlier from GitHub must be uninstalled once.
 - Never run emulators on the VM; CI (GitHub Actions) builds and runs the engine tests.
 
 ## Design rules (1.1, approved by the user: canvas https://claude.ai/artifact/3JoM2SnRZyabq32f2XaFmt)

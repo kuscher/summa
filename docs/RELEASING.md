@@ -5,10 +5,11 @@ download button points at `releases/latest/download/Summa.apk`, so this name is 
 `Summa-<version>.apk`, plus `SHA256SUMS`.
 
 **Every release must be signed with the Summa release key** (alias `summa`, certificate SHA-256
-`57:24:72:36:A8:E5:43:8C:38:F6:18:1B:F6:62:57:77:C2:C9:1D:B0:2B:16:F0:52:E1:07:74:5E:6B:5E:6D:32`).
+`1D:EA:BA:8D:67:3F:B4:F1:00:C3:D9:74:78:D2:2E:EE:25:50:CD:E5:4D:C2:6B:65:99:C3:F3:4B:5F:F5:79:0F`).
 Android only installs an update over an existing app when both are signed with the same key; a
 release signed with anything else makes everyone uninstall first (and lose their sheets). The key
-lives with the maintainer in `~/.config/summa/` (`keystore.jks`, `keystore.pass`), backed up to private storage; it is never committed (`.gitignore` covers `*.jks`, `*.keystore`, `*.pass`).
+lives with the maintainer in `~/.config/summa/` (`keystore.jks`, `keystore.pass`), backed up with its password to private storage (folder a private folder). It replaced the original key on 30 September 2026, so
+installs of 1.3.1 and earlier from GitHub have to be uninstalled once; it is never committed (`.gitignore` covers `*.jks`, `*.keystore`, `*.pass`).
 
 ## Steps
 
