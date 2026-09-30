@@ -54,7 +54,7 @@ class DebugReceiver : BroadcastReceiver() {
             "type" -> main.post {
                 // Types into Summa's own text state (like a keystroke, without injecting input).
                 val s = act?.session ?: return@post out("no session")
-                s.state.edit { val at = selection.max; replace(selection.min, at, arg); selection = TextRange(selection.min + arg.length) }
+                s.state.edit { val from = selection.min; replace(from, selection.max, arg); selection = TextRange(from + arg.length) }
                 out("ok")
             }
             "cursor" -> main.post {

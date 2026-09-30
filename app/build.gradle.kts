@@ -12,8 +12,8 @@ android {
         applicationId = "io.github.kuscher.summa"
         minSdk = 31
         targetSdk = 37
-        versionCode = 10
-        versionName = "1.3"
+        versionCode = 11
+        versionName = "1.3.1"
     }
 
     // Release signing from ~/.config/summa (never committed). Absent -> unsigned release build.

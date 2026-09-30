@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.1 (2026-09-30)
+
+- Fixed: an answer could keep showing its previous value until something else redrew the sheet,
+  for example `€3.00` after you finished typing `3 EUR in USD`. It now changes as you type.
+
 ## 1.3 (2026-09-30)
 
 - **The mini calculator shows the sheet you're on**, not a separate scratch sheet. It's the same

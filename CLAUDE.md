@@ -70,8 +70,8 @@ Android 12+. Plain APK, Kotlin + Jetpack Compose, Material 3 Expressive (materia
 - Caption bar: `CaptionTracker` follows `getBoundingRects(captionBar)` through the decor's insets
   listener; reading `rootWindowInsets` during composition is stale after a resize. (Anything placed
   in the caption would need `Modifier.systemGestureExclusion()`; since 1.1 nothing is.)
-- `Modifier.dragAndDropSource` caches its content's drawing: key the node on its colours or theme
-  switches won't repaint it.
+- `Modifier.dragAndDropSource` caches its content's drawing: key the node on everything it shows
+  (colours, the answer text, "Copied"), or theme switches and changed answers won't repaint it.
 - Pinned mini window: `AppTask.requestWindowingLayer(PINNED)` works on the HP (logcat shows
   `windowingLayer = 2`, `isPinned=true`); only from a focused freeform task.
 - Long sheets: the BasicTextField lays out the whole text on every change. Span styles that change

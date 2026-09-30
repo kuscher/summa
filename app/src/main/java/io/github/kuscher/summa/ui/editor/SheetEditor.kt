@@ -371,12 +371,13 @@ private fun Answer(
     val copied = session.copiedLine == index
     val fg = if (copied) scheme.onSurfaceVariant else scheme.primary
     Box(modifier, contentAlignment = Alignment.CenterEnd) {
-        androidx.compose.runtime.key(fg) {
+        // Keyed on what it shows: the drag source below caches its drawing, so without a new node
+        // a changed answer ("€3.00" → "$3.41" as you finish typing "in USD") kept the old picture.
+        androidx.compose.runtime.key(fg, answer, copied) {
         Box(
             Modifier
                 .onSecondaryClick { menu = true }
-                // Drag an answer into another app or window. (Keyed on the colour so the drag
-                // node's cached drawing follows theme changes.)
+                // Drag an answer into another app or window.
                 .dragAndDropSource { _ ->
                     androidx.compose.ui.draganddrop.DragAndDropTransferData(
                         android.content.ClipData.newPlainText("Summa answer", answer),
