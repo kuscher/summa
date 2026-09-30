@@ -318,6 +318,20 @@ fun EditorPane(
                 meta?.title?.ifBlank { "Untitled" } ?: "Untitled", Modifier.weight(1f).padding(start = 10.dp),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight(700)), maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
+            if (ev?.result?.anyRateDependent == true) {
+                val r by app.rates.rates.collectAsState()
+                Row(
+                    Modifier.padding(end = 6.dp).clip(CircleShape).background(scheme.surfaceContainerHigh)
+                        .clickable { app.rates.refresh(force = true); onMessage("Updating exchange rates…") }
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                        .semantics { contentDescription = "Exchange rates from ${r.source}, ${r.asOf}. Click to update." },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    SymIcon(Sym.CURRENCY_EXCHANGE, size = 16.sp, tint = scheme.tertiary)
+                    Text("${if (r.source.contains("Central")) "ECB" else r.source.ifBlank { "Rates" }} · ${prettyDate(r.asOf)}",
+                        Modifier.padding(start = 6.dp), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
+                }
+            }
             var more by remember { mutableStateOf(false) }
             val files = rememberFileActions(session, onMessage) { SummaApp.instance.prefs.putString("lastSheet", it); DebugHooks.open(it) }
             RoundIcon(Sym.IOS_SHARE, "Share") { shareSheet(context, session) }
@@ -357,6 +371,11 @@ fun EditorPane(
     }
 }
 
+fun prettyDate(iso: String?): String = try {
+    val d = java.time.LocalDate.parse(iso)
+    d.format(java.time.format.DateTimeFormatter.ofPattern("d MMM"))
+} catch (_: Exception) { iso ?: "" }
+
 @Composable
 fun RoundIcon(sym: String, label: String, onClick: () -> Unit) {
     Box(Modifier.size(44.dp).clip(CircleShape).clickable(onClick = onClick).semantics { contentDescription = label }, contentAlignment = Alignment.Center) {
@@ -389,5 +408,6 @@ object DebugHooks {
     var open: (String) -> Unit = {}
     var newSheet: () -> Unit = {}
     var screen: (String) -> Unit = {}
+    var focus: () -> Unit = {}
 }
 

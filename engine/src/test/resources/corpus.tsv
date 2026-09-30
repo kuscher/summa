@@ -346,3 +346,15 @@ e	2.72
 2sin(pi/6)	1
 gcd(10, 20, 5)	5
 sqrt(16 m²)	4 m
+
+## named dates and places
+days until Christmas	86 days
+Christmas	Fri, Dec 25, 2026
+easter	Sun, Mar 28, 2027
+thanksgiving	Thu, Nov 26, 2026
+days until new year	93 days
+week number	40
+3 pm Munich in San Francisco	6:00 am
+time in Japan	5:00 pm
+9am Bangalore in NYC	Yesterday 11:30 pm
+noon Berlin in Tokyo	7:00 pm

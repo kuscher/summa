@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Only for downloading exchange-rate tables (Settings › Money › Live exchange rates). -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:name=".SummaApp"
         android:allowBackup="true"

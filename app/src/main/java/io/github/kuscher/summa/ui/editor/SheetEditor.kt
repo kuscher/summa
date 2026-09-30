@@ -60,6 +60,19 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.zIndex
+import io.github.kuscher.summa.engine.Completion
+import io.github.kuscher.summa.engine.Completions
 import io.github.kuscher.summa.data.Settings
 import io.github.kuscher.summa.engine.LineKind
 import io.github.kuscher.summa.engine.Style
@@ -194,9 +207,45 @@ fun SheetEditor(
                     }
                 }
             }
+            // Autocomplete for the word before the cursor.
+            val sel = session.state.selection
+            val word = remember(text.toString(), sel) { wordBefore(text, sel) }
+            val vars = remember(ev) { ev?.result?.lines?.mapNotNull { it.declares }?.distinct().orEmpty() }
+            var dismissedAt by remember { mutableIntStateOf(-1) }
+            var pick by remember { mutableIntStateOf(0) }
+            var navigated by remember { mutableStateOf(false) }
+            var focused by remember { mutableStateOf(false) }
+            val suggestions = remember(word, vars) {
+                if (word == null || (word.prefix.length < 2 && !word.afterNumber)) emptyList()
+                else Completions.suggest(word.prefix, vars, word.afterNumber, limit = 6)
+            }
+            val showAc = focused && suggestions.isNotEmpty() && word != null && dismissedAt != sel.start
+            LaunchedEffect(word?.start, word?.prefix) { pick = 0; navigated = false }
+            fun accept(c: Completion) {
+                val w = word ?: return
+                session.state.edit {
+                    replace(w.start, sel.start, c.insert)
+                    selection = TextRange(w.start + c.insert.length)
+                }
+            }
+            val focusReq = remember { androidx.compose.ui.focus.FocusRequester() }
+            io.github.kuscher.summa.ui.DebugHooks.focus = { runCatching { focusReq.requestFocus() } }
+            Box(Modifier.weight(1f).padding(end = 12.dp).zIndex(5f)) {
             BasicTextField(
                 state = session.state,
-                modifier = Modifier.weight(1f).padding(end = 12.dp).semantics { contentDescription = "Sheet" },
+                modifier = Modifier.fillMaxWidth().focusRequester(focusReq).semantics { contentDescription = "Sheet" }
+                    .onFocusChanged { focused = it.isFocused }
+                    .onPreviewKeyEvent { e ->
+                        if (!showAc || e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                        when (e.key) {
+                            Key.Tab -> { accept(suggestions[pick.coerceIn(0, suggestions.lastIndex)]); true }
+                            Key.Enter, Key.NumPadEnter -> if (navigated) { accept(suggestions[pick.coerceIn(0, suggestions.lastIndex)]); true } else false
+                            Key.DirectionDown -> { pick = (pick + 1) % suggestions.size; navigated = true; true }
+                            Key.DirectionUp -> { pick = (pick - 1 + suggestions.size) % suggestions.size; navigated = true; true }
+                            Key.Escape -> { dismissedAt = sel.start; true }
+                            else -> false
+                        }
+                    },
                 textStyle = textStyle,
                 cursorBrush = SolidColor(primary),
                 outputTransformation = syntax,
@@ -204,7 +253,82 @@ fun SheetEditor(
                 lineLimits = TextFieldLineLimits.MultiLine(),
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false, keyboardType = KeyboardType.Text),
             )
+            val l = layout
+            if (showAc && l != null && sel.start <= l.layoutInput.text.length) {
+                val r = l.getCursorRect(sel.start)
+                Box(Modifier.offset { IntOffset(r.left.toInt() - 12.dp.roundToPx(), r.bottom.toInt() + 4.dp.roundToPx()) }.zIndex(10f)) {
+                    AutocompleteList(suggestions, pick) { accept(it) }
+                }
+            }
+            }
             AnswerRail(session, layout, starts, activeLine, railWidth, settings, compact, onMessage, onInsert)
+        }
+    }
+}
+
+/** Rewrites line [index] to end in "in <target>", replacing a conversion that's already there. */
+fun convertLine(session: Session, index: Int, target: String) {
+    val text = session.state.text.toString()
+    val starts = lineStarts(text)
+    val s = starts.getOrNull(index) ?: return
+    val e = starts.getOrNull(index + 1)?.minus(1) ?: text.length
+    val line = text.substring(s, e)
+    val comment = line.indexOf("//").let { if (it < 0) line.length else it }
+    val body = line.substring(0, comment).trimEnd()
+    val tail = line.substring(comment)
+    val m = Regex("\\s(in|to|as|into)\\s+[^\\s].*$").find(body)
+    val base = if (m != null) body.substring(0, m.range.first) else body
+    val phrase = when (target) { "%" -> " as %"; "hex", "binary", "fraction", "sci" -> " in $target"; else -> " in $target" }
+    val newLine = base + phrase + (if (tail.isNotEmpty()) "  $tail" else "")
+    session.state.edit { replace(s, e, newLine) }
+}
+
+class WordAt(val start: Int, val prefix: String, val afterNumber: Boolean)
+
+/** The word being typed before the cursor, if the cursor sits at the end of a word. */
+fun wordBefore(text: CharSequence, sel: TextRange): WordAt? {
+    if (!sel.collapsed) return null
+    val end = sel.start
+    if (end > text.length) return null
+    if (end < text.length && (text[end].isLetterOrDigit() || text[end] == '_')) return null
+    var s = end
+    while (s > 0 && (text[s - 1].isLetterOrDigit() || text[s - 1] == '_' || text[s - 1] == '°' || text[s - 1] == 'µ')) s--
+    while (s < end && text[s].isDigit()) s++
+    if (s >= end || !(text[s].isLetter() || text[s] == '°' || text[s] == 'µ')) return null
+    val lineStart = text.lastIndexOf('\n', s - 1) + 1
+    val before = text.substring(lineStart, s)
+    if (before.trimStart().startsWith("//") || before.trimStart().startsWith("#")) return null
+    val prev = before.trimEnd().lastOrNull()
+    val afterNumber = prev != null && (prev.isDigit() || Character.getType(prev) == Character.CURRENCY_SYMBOL.toInt())
+    return WordAt(s, text.substring(s, end), afterNumber)
+}
+
+@Composable
+private fun AutocompleteList(items: List<Completion>, pick: Int, onPick: (Completion) -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    androidx.compose.material3.Surface(shape = RoundedCornerShape(18.dp), color = scheme.surfaceContainer, shadowElevation = 6.dp, tonalElevation = 2.dp) {
+        androidx.compose.foundation.layout.Column(Modifier.padding(6.dp).width(260.dp)) {
+            items.forEachIndexed { i, c ->
+                val on = i == pick
+                Row(
+                    Modifier.fillMaxWidth().height(36.dp).clip(RoundedCornerShape(if (on) 50 else 10))
+                        .background(if (on) scheme.tertiaryContainer else scheme.surfaceContainer)
+                        .clickable { onPick(c) }.padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    val sym = when (c.kind) {
+                        Completion.Kind.VARIABLE -> Sym.DATA_OBJECT; Completion.Kind.UNIT -> Sym.STRAIGHTEN
+                        Completion.Kind.CURRENCY -> Sym.PAYMENTS; Completion.Kind.FUNCTION -> Sym.FUNCTION
+                        else -> Sym.PUBLIC
+                    }
+                    SymIcon(sym, size = 17.sp, tint = if (on) scheme.onTertiaryContainer else scheme.onSurfaceVariant)
+                    Text(c.insert, Modifier.padding(start = 10.dp).weight(1f), maxLines = 1,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight(620)), color = if (on) scheme.onTertiaryContainer else scheme.onSurface)
+                    Text(c.detail, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall,
+                        color = if (on) scheme.onTertiaryContainer else scheme.onSurfaceVariant, modifier = Modifier.padding(start = 8.dp).widthIn(max = 130.dp))
+                }
+            }
+            Text("Tab to insert · Esc to hide", Modifier.padding(start = 12.dp, top = 4.dp, bottom = 2.dp), style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
         }
     }
 }
@@ -234,15 +358,16 @@ private fun AnswerRail(
                 else {
                     val ln = l.getLineForOffset(s)
                     val top = l.getLineTop(ln)
-                    Triple(i, answer, Pair(top, l.getLineBottom(ln) - top) to lr.isTotal)
+                    Triple(i, answer, Pair(top, l.getLineBottom(ln) - top) to lr)
                 }
             }
             for ((i, answer, geo) in placed) {
-                val (pos, isTotal) = geo
+                val (pos, lr) = geo
                 val (top, h) = pos
                 androidx.compose.runtime.key(i) {
                     Answer(
-                        answer, i, i == activeLine, isTotal, settings,
+                        answer, i, i == activeLine, lr.isTotal, settings, lr.value,
+                        onConvert = { target -> convertLine(session, i, target) },
                         Modifier.align(Alignment.TopEnd).offset { IntOffset(0, top.toInt()) }.height(with(density) { h.toDp() }),
                         onMessage, onInsert,
                     )
@@ -254,7 +379,8 @@ private fun AnswerRail(
 
 @Composable
 private fun Answer(
-    answer: String, index: Int, active: Boolean, isTotal: Boolean, settings: Settings, modifier: Modifier,
+    answer: String, index: Int, active: Boolean, isTotal: Boolean, settings: Settings, value: io.github.kuscher.summa.engine.Value?,
+    onConvert: (String) -> Unit, modifier: Modifier,
     onMessage: (String) -> Unit, onInsert: (String) -> Unit,
 ) {
     val context = LocalContext.current
@@ -305,6 +431,26 @@ private fun Answer(
                     copyToClipboard(context, n); onMessage("Copied $n"); menu = false
                 },
             )
+            val targets = remember(value) { Completions.conversionsFor(value) }
+            if (targets.isNotEmpty()) {
+                HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                Row(Modifier.padding(start = 16.dp, end = 12.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    SymIcon(Sym.SWAP_HORIZ, size = 20.sp, tint = scheme.onSurfaceVariant)
+                    Text("Convert to", Modifier.padding(start = 12.dp), style = MaterialTheme.typography.bodyLarge)
+                }
+                androidx.compose.foundation.layout.FlowRow(
+                    Modifier.padding(start = 48.dp, end = 12.dp, top = 6.dp, bottom = 6.dp).widthIn(max = 280.dp),
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp),
+                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp),
+                ) {
+                    for (target in targets) {
+                        androidx.compose.material3.Surface(
+                            onClick = { onConvert(target); menu = false }, shape = RoundedCornerShape(10.dp),
+                            color = scheme.surfaceContainerHighest,
+                        ) { Text(target, Modifier.padding(horizontal = 10.dp, vertical = 5.dp), style = MaterialTheme.typography.labelLarge) }
+                    }
+                }
+            }
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
             DropdownMenuItem(
                 text = { Text("Insert reference") }, leadingIcon = { SymIcon(Sym.LINK, size = 20.sp) },

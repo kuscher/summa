@@ -7,6 +7,9 @@ import io.github.kuscher.summa.data.RatesRepo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 class SummaApp : Application() {
     lateinit var library: Library; private set
@@ -20,6 +23,10 @@ class SummaApp : Application() {
         library = Library(this)
         prefs = Prefs(this)
         rates = RatesRepo(this, prefs, scope)
+        // Rate switches in Settings take effect right away; otherwise refresh at most twice a day.
+        scope.launch {
+            prefs.state.map { it.onlineRates to it.crypto }.distinctUntilChanged().collect { rates.onSettingsChanged() }
+        }
         if (!prefs.value.firstRunDone) {
             if (library.state.value.sheets.isEmpty()) {
                 library.create(Samples.LISBON)

@@ -282,6 +282,16 @@ object Lexicon {
         ci.put(keys("thurs"), { Tok(T.DAYWORD, 0, 0, it, DayOfWeek.THURSDAY) })
         for (w in listOf("today", "tomorrow", "yesterday", "now", "noon", "midday", "midnight", "tonight", "day after tomorrow", "day before yesterday"))
             ci.put(keys(w), { Tok(T.NOW, 0, 0, it, w) })
+        for ((names, id) in listOf(
+            listOf("christmas", "christmas day", "xmas") to "christmas", listOf("christmas eve") to "christmas eve",
+            listOf("new year", "new year's day", "new years day", "new years") to "new year", listOf("new year's eve", "new years eve", "silvester") to "new year's eve",
+            listOf("halloween") to "halloween", listOf("valentine's day", "valentines day", "valentines") to "valentine's day",
+            listOf("easter", "easter sunday") to "easter", listOf("good friday") to "good friday", listOf("easter monday") to "easter monday",
+            listOf("thanksgiving") to "thanksgiving", listOf("independence day", "fourth of july", "4th of july") to "independence day",
+            listOf("pi day") to "pi day", listOf("st patrick's day", "st patricks day", "saint patrick's day") to "st patrick's day",
+        )) for (n in names) ci.put(keys(n), { Tok(T.NOW, 0, 0, it, id) })
+        for (w in listOf("week number", "week of year", "week of the year", "calendar week", "kw")) ci.put(keys(w), { Tok(T.NOW, 0, 0, it, "week number") })
+        for (w in listOf("day of year", "day of the year")) ci.put(keys(w), { Tok(T.NOW, 0, 0, it, "day of year") })
     }
 
     val MONTHS: Map<String, Month> = buildMap {

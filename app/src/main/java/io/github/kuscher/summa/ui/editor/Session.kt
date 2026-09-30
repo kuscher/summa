@@ -58,6 +58,7 @@ class Session(
                         engine.evaluate(text, ZonedDateTime.now(s.zone))
                     }
                     evaluated = Evaluated(text, result)
+                    if (result.anyRateDependent) io.github.kuscher.summa.SummaApp.instance.rates.refresh()
                 }
         }
         // Autosave shortly after typing stops.

@@ -95,7 +95,7 @@ class Evaluator(private val ctx: EvalCtx) {
         is TagStat -> ctx.tagStat(n.kind, n.tag) ?: throw EvalError("no #${n.tag}")
         is DateNode -> dateOf(n.d)
         is TimeNode -> Moment(atToday(n.t), hasDate = false, hasTime = true, refDate = ctx.now.withZoneSameInstant(st.zone).toLocalDate())
-        is NowNode -> nowWord(n.word)
+        is NowNode -> try { nowWord(n.word) } catch (e: Early) { e.v }
         is DayNode -> dayOf(n)
         is RelPeriod -> relPeriod(n)
         is AtPlace -> atPlace(eval(n.x), n.place)
@@ -745,10 +745,51 @@ class Evaluator(private val ctx: EvalCtx) {
             "yesterday" -> Moment(midday(d.minusDays(1)), hasDate = true, hasTime = false)
             "day after tomorrow" -> Moment(midday(d.plusDays(2)), hasDate = true, hasTime = false)
             "day before yesterday" -> Moment(midday(d.minusDays(2)), hasDate = true, hasTime = false)
+            "week number" -> return0(Qty(Num.of(d.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR).toLong())))
+            "day of year" -> return0(Qty(Num.of(d.dayOfYear.toLong())))
+            in HOLIDAYS -> {
+                // The next one, counting today.
+                var y = d.year
+                var date = holiday(w, y)
+                if (date.isBefore(d)) { y++; date = holiday(w, y) }
+                Moment(midday(date), hasDate = true, hasTime = false)
+            }
             "noon", "midday" -> Moment(ZonedDateTime.of(d, LocalTime.NOON, st.zone), hasDate = false, hasTime = true)
             "midnight" -> Moment(ZonedDateTime.of(d, LocalTime.MIDNIGHT, st.zone), hasDate = false, hasTime = true)
             else -> Moment(now, hasDate = false, hasTime = true)
         }
+    }
+
+    private class Early(val v: Value) : RuntimeException()
+    private fun return0(v: Value): Nothing = throw Early(v)
+
+    private val HOLIDAYS = setOf("christmas", "christmas eve", "new year", "new year's eve", "halloween", "valentine's day", "easter",
+        "good friday", "easter monday", "thanksgiving", "independence day", "pi day", "st patrick's day")
+
+    private fun holiday(w: String, y: Int): LocalDate = when (w) {
+        "christmas" -> LocalDate.of(y, 12, 25)
+        "christmas eve" -> LocalDate.of(y, 12, 24)
+        "new year" -> LocalDate.of(y, 1, 1)
+        "new year's eve" -> LocalDate.of(y, 12, 31)
+        "halloween" -> LocalDate.of(y, 10, 31)
+        "valentine's day" -> LocalDate.of(y, 2, 14)
+        "independence day" -> LocalDate.of(y, 7, 4)
+        "pi day" -> LocalDate.of(y, 3, 14)
+        "st patrick's day" -> LocalDate.of(y, 3, 17)
+        "thanksgiving" -> LocalDate.of(y, 11, 1).with(TemporalAdjusters.dayOfWeekInMonth(4, java.time.DayOfWeek.THURSDAY))
+        "easter" -> easter(y)
+        "good friday" -> easter(y).minusDays(2)
+        "easter monday" -> easter(y).plusDays(1)
+        else -> throw EvalError(w)
+    }
+
+    /** Easter Sunday (Gregorian computus, "Anonymous" algorithm). */
+    private fun easter(y: Int): LocalDate {
+        val a = y % 19; val b = y / 100; val c = y % 100; val d = b / 4; val e = b % 4
+        val f = (b + 8) / 25; val g = (b - f + 1) / 3; val h = (19 * a + b - d - g + 15) % 30
+        val i = c / 4; val k = c % 4; val l = (32 + 2 * e + 2 * i - h - k) % 7; val m = (a + 11 * h + 22 * l) / 451
+        val month = (h + l - 7 * m + 114) / 31; val day = ((h + l - 7 * m + 114) % 31) + 1
+        return LocalDate.of(y, month, day)
     }
 
     private fun dayOf(n: DayNode): Moment {

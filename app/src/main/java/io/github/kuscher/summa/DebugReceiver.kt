@@ -34,7 +34,9 @@ class DebugReceiver : BroadcastReceiver() {
             "list" -> out(app.library.state.value.sheets.joinToString(" | ") { "${it.id}:${it.title}${if (it.trashedAt != null) " (trash)" else ""}" })
             "open" -> main.post { DebugHooks.open(arg); out("ok") }
             "new" -> main.post { DebugHooks.newSheet(); out("ok") }
+            "delete" -> { app.library.deleteForever(arg); out("ok") }
             "screen" -> main.post { DebugHooks.screen(arg); out("ok") }
+            "focus" -> main.post { DebugHooks.focus(); out("ok") }
             "text" -> main.post {
                 val s = act?.session ?: return@post out("no session")
                 s.state.setTextAndPlaceCursorAtEnd(String(Base64.decode(arg, Base64.DEFAULT), Charsets.UTF_8))

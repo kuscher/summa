@@ -43,14 +43,18 @@ next to it, on the right. Change a number and everything that depends on it upda
   `$25/hour × 14 hours`, `1 cm in px at 326 ppi`.
 - **Percentages, every way.** `20% of $10`, `5% on $30`, `6% off 40 EUR`, `$50 as a % of $100`,
   `20 is 10% of what`, `50 to 75 is what %`.
-- **Dates and time zones.** `days until Dec 25`, `next friday + 2 weeks`, `8:30 am + 3 h 20 min`,
-  `3 pm Lisbon in Tokyo`, `time in New York`.
+- **Dates and time zones.** `days until Christmas`, `next friday + 2 weeks`, `8:30 am + 3 h 20 min`,
+  `3 pm Lisbon in Tokyo`, `time in Japan`. Over 6,000 cities, every country and the usual
+  abbreviations (PST, CET, IST…), all offline.
+- **Live exchange rates** for 166 currencies and metals, refreshed twice a day, with rates built in
+  for offline use. Crypto if you want it.
 - **Your own names.** `rate = $85/hour`, then `rate × 6.5 hours`. Refer to a line with `line6`,
   the line above with `prev`, and add up a block with `sum`.
 - **Formats.** `255 in hex`, `0.2 as fraction`, `1/3 to 2 dp`, `$490 rounded to nearest hundred`.
 
-It's built for a laptop: a sheet list on the side, keyboard shortcuts, right-click menus and a
-floating toolbar with a **display** that shows the current line's answer, or the sum of the lines
+It's built for a laptop: a sheet list on the side, autocomplete for units, currencies and your own
+names (Tab to insert), keyboard shortcuts, right-click menus (copy, convert to another unit, insert a
+reference) and a floating toolbar with a **display** that shows the current line's answer, or the sum of the lines
 you select.
 
 ## What you can type
@@ -103,6 +107,17 @@ To update, install a newer `Summa.apk` over the old one. Your sheets stay.
 Summa keeps your sheets on your device, in the app's own storage, and Android's backup copies
 them to your Google account if you have backup turned on. There are no accounts, ads or analytics.
 
+Summa's only use of the internet is **downloading exchange-rate tables**, at most twice a day and
+only while *Settings › Money › Live exchange rates* is on:
+
+- fiat rates from [Frankfurter](https://frankfurter.dev) (central-bank rates, open source), with the
+  [European Central Bank](https://www.ecb.europa.eu)'s daily rates as a fallback;
+- crypto prices from [CoinGecko](https://www.coingecko.com) only if you turn on *Crypto prices*.
+
+Nothing is ever uploaded: the requests carry no sheet content, account or device ID. With the switch
+off, Summa uses the rates bundled in the app (and whatever it downloaded last), and works fully offline.
+City and time-zone lookups are offline too.
+
 ## Made on a Googlebook
 
 Everything here was written, built and tested on a Googlebook, in its built-in Linux Terminal:
@@ -135,5 +150,6 @@ Summa is free software under the [MIT License](LICENSE). It includes:
   the [SIL Open Font License 1.1](app/src/main/assets/licenses/OFL-GoogleSans.txt) allows.
 - Google's [Material Symbols](https://fonts.google.com/icons) (Apache License 2.0).
 - Exchange rates from the European Central Bank (source: ECB), bundled for offline use.
+- City data from [GeoNames](https://www.geonames.org) (CC BY 4.0): cities of 100,000+ people and capitals.
 
 It uses Jetpack Compose, AndroidX, Kotlin and kotlinx.serialization (Apache License 2.0).
