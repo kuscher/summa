@@ -43,3 +43,12 @@ Android 12+. Plain APK, Kotlin + Jetpack Compose, Material 3 Expressive (materia
 - In composables, no early `return@Box` from content lambdas (Compose start/end imbalance crash).
 - Text needs a `Surface` above it for the right content colour in dark mode.
 - The Google Sans fonts are renamed "Summa Sans/Mono" when subset (Google's trademark notes).
+- Desktop mode (Googlebook OS) ignores `<layout>` default sizes and `ActivityOptions.setLaunchBounds`:
+  new windows get the shell's standard size (AOSP `DesktopModeUtils.calculateInitialBounds`).
+- Caption bar: `CaptionTracker` follows `getBoundingRects(captionBar)` through the decor's insets
+  listener; reading `rootWindowInsets` during composition is stale after a resize. Buttons in the
+  caption need `Modifier.systemGestureExclusion()` or the system treats clicks as window drags.
+- `Modifier.dragAndDropSource` caches its content's drawing: key the node on its colours or theme
+  switches won't repaint it.
+- Pinned mini window: `AppTask.requestWindowingLayer(PINNED)` works on the HP (logcat shows
+  `windowingLayer = 2`, `isPinned=true`); only from a focused freeform task.

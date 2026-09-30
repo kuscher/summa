@@ -57,6 +57,30 @@ names (Tab to insert), keyboard shortcuts, right-click menus (copy, convert to a
 reference) and a floating toolbar with a **display** that shows the current line's answer, or the sum of the lines
 you select.
 
+## Made for the Googlebook
+
+<p align="center">
+  <img src="docs/images/dark.png" width="760" alt="Summa in dark mode, with its header drawn into the window's title bar next to the window buttons">
+  <br><sub>The sheet's title, the exchange-rate chip and the actions sit in the window's own title bar.</sub>
+</p>
+
+- **Lives in the title bar.** The sheet title and actions sit in the window's caption, next to
+  the system's window buttons; the empty space still drags the window.
+- **A mini calculator that stays on top.** Open it from the Quick Settings tile, the launcher,
+  the header or Ctrl+Shift+M. It keeps one scratch sheet and, on Android 17 desktops, stays above
+  your other windows (turn that off in Settings).
+- **"Calculate" in every app.** Select `€49 in USD` in Chrome or any app, right-click › Calculate,
+  and a small card shows the answer with Copy, Insert answer and Open in Summa.
+- **A window per sheet.** Right-click a sheet › Open in new window, or use the taskbar's New window.
+- **Drag answers** into Docs, Gmail or another sheet. Share text to Summa to start a sheet.
+- **Keyboard first**, with every shortcut listed in the system's shortcut helper (Search+/).
+- **Handoff:** start a sheet on your phone and carry on at the Googlebook (Android 17).
+
+<p align="center">
+  <img src="docs/images/phone.png" width="300" alt="Summa on a phone-sized window with its keypad: rounded number keys, operators and a cookie-shaped return key">
+  <br><sub>On phones: an Expressive keypad whose keys squash into rounded squares as you press them.</sub>
+</p>
+
 ## What you can type
 
 | You type | Summa answers |
@@ -92,7 +116,10 @@ To update, install a newer `Summa.apk` over the old one. Your sheets stay.
 
 | Keys | Does |
 |---|---|
+| Search+/ | See every shortcut (the system's shortcut helper) |
 | Ctrl+N | New sheet |
+| Ctrl+Shift+N | New window |
+| Ctrl+Shift+M | Mini calculator |
 | Ctrl+K | Search sheets |
 | Ctrl+Shift+C | Copy the current line's answer |
 | Ctrl+/ | Turn lines into notes (and back) |
@@ -101,6 +128,7 @@ To update, install a newer `Summa.apk` over the old one. Your sheets stay.
 | Ctrl+\ | Insert `prev` (the answer above) |
 | Ctrl+B | Show or hide the sheet list |
 | Ctrl+, | Settings |
+| Tab / Esc | Insert or hide an autocomplete suggestion |
 
 ## Privacy
 

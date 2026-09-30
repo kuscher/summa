@@ -10,6 +10,6 @@ State and next steps, for whoever continues (human or Claude). Keep this current
 ## Next (plan: https://claude.ai/artifact/SGXCvaPbcSA7n6digX4Hsy)
 - v0.2: live rates (Frankfurter → ECB fallback, CoinGecko crypto opt-in), GeoNames cities, autocomplete,
   convert-to menu on answers, more units/phrases.
-- v0.3: pinned mini window (`AppTask.requestWindowingLayer`), QS tile, PROCESS_TEXT "Calculate",
-  caption-bar integration, multi-window, drag and drop, shortcut helper, phone keypad, Handoff.
+- v0.3 done: caption header, pinned mini window (desktop mode ignores launch bounds, so it opens at the system size), Calculate, tile, shortcuts, keypad, Handoff.
+
 - v1.0: finance/VAT/workdays, definitions sheet, CSV/PDF/HTML export, a11y audit, README screenshots.

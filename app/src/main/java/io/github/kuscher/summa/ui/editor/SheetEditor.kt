@@ -400,13 +400,15 @@ private fun Answer(
     val fg = if (active) scheme.onPrimaryContainer else scheme.onSurface
     val scale by animateFloatAsState(if (active) 1f else 1f, label = "s")
     Box(modifier.padding(end = 4.dp), contentAlignment = Alignment.CenterEnd) {
+        androidx.compose.runtime.key(fg, scheme.primaryContainer) {
         Box(
             Modifier
                 .clip(RoundedCornerShape(50))
                 .background(bg)
                 .hoverable(hover)
                 .onSecondaryClick { menu = true }
-                // Drag an answer into another app or window.
+                // Drag an answer into another app or window. (Keyed on the colours below so the
+                // drag node's cached drawing follows theme changes.)
                 .dragAndDropSource { _ ->
                     androidx.compose.ui.draganddrop.DragAndDropTransferData(
                         android.content.ClipData.newPlainText("Summa answer", answer),
@@ -427,6 +429,7 @@ private fun Answer(
                     fontFeatureSettings = "tnum" + if (settings.slashedZero) ", zero" else "", color = fg,
                 ),
             )
+        }
         }
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, shape = RoundedCornerShape(18.dp)) {
             DropdownMenuItem(

@@ -37,6 +37,7 @@ class DebugReceiver : BroadcastReceiver() {
             "delete" -> { app.library.deleteForever(arg); out("ok") }
             "screen" -> main.post { DebugHooks.screen(arg); out("ok") }
             "focus" -> main.post { DebugHooks.focus(); out("ok") }
+            "keypad" -> main.post { DebugHooks.keypad(); out("ok") }
             "mini" -> main.post { io.github.kuscher.summa.ui.MainActivity.openMini(act ?: context.applicationContext); out("ok") }
             "closemini" -> main.post { io.github.kuscher.summa.ui.MiniActivity.instance.get()?.finishAndRemoveTask(); out("ok") }
             "text" -> main.post {

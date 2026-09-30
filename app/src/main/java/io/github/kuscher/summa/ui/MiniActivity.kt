@@ -65,11 +65,13 @@ class MiniActivity : ComponentActivity() {
     private var pinned by mutableStateOf(false)
     private var autoPinTried = false
     private var onMessage: (String) -> Unit = {}
+    private lateinit var captionTracker: CaptionTracker
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         instance = java.lang.ref.WeakReference(this)
+        captionTracker = CaptionTracker(this)
         val app = SummaApp.instance
         app.library.scratch()
         setContent {
@@ -86,7 +88,7 @@ class MiniActivity : ComponentActivity() {
                 Surface(color = MaterialTheme.colorScheme.surface) {
                     Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))) {
                         Column(Modifier.fillMaxSize()) {
-                            val cap = rememberCaptionInsets()
+                            val cap = rememberCaptionInsets(captionTracker)
                             HeaderRow(cap, wideLayout = true) {
                                 Row(Modifier.padding(start = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                                     SymIcon(Sym.CALCULATE, size = 19.sp, filled = true, tint = MaterialTheme.colorScheme.primary)

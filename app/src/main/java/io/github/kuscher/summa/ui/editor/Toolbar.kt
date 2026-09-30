@@ -86,6 +86,7 @@ fun SheetToolbar(
     keypadOpen: Boolean,
     onKeypad: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
     val context = LocalContext.current
     HorizontalFloatingToolbar(
@@ -94,7 +95,7 @@ fun SheetToolbar(
         colors = FloatingToolbarDefaults.standardFloatingToolbarColors(),
         contentPadding = FloatingToolbarDefaults.ContentPadding,
         trailingContent = {
-            DisplayPill(display, onCycle, onCopy = { v -> copyToClipboard(context, v); onMessage("Copied $v") })
+            DisplayPill(display, onCycle, onCopy = { v -> copyToClipboard(context, v); onMessage("Copied $v") }, big = !compact)
         },
     ) {
         if (onKeypad != null) ToolButton(Sym.DIALPAD, "Keypad", selected = keypadOpen, onClick = onKeypad)
@@ -107,7 +108,7 @@ fun SheetToolbar(
                 }
             }
         }
-        MenuButton(Sym.CURRENCY_EXCHANGE, "Insert a currency") { close ->
+        if (!compact) MenuButton(Sym.CURRENCY_EXCHANGE, "Insert a currency") { close ->
             for (cur in CURRENCIES) DropdownMenuItem(text = { Text(cur) }, onClick = { onInsert(cur); close() })
             DropdownMenuItem(text = { Text("in EUR") }, onClick = { onInsert(" in EUR"); close() })
             DropdownMenuItem(text = { Text("in USD") }, onClick = { onInsert(" in USD"); close() })
@@ -119,7 +120,7 @@ fun SheetToolbar(
                 onClick = { onInsert(f); close() },
             )
         }
-        ToolButton(Sym.PERCENT, "Percent") { onInsert("%") }
+        if (!compact) ToolButton(Sym.PERCENT, "Percent") { onInsert("%") }
     }
 }
 
@@ -178,9 +179,11 @@ fun DisplayPill(d: Display, onCycle: () -> Unit, onCopy: (String) -> Unit, modif
                     },
                     label = "display",
                 ) { v ->
-                    Text(
-                        v, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                        style = TextStyle(fontFamily = SummaFonts.display, fontSize = if (big) 25.sp else 21.sp, fontWeight = FontWeight(820), fontFeatureSettings = "tnum"),
+                    // Long answers shrink to fit instead of being cut off.
+                    androidx.compose.foundation.text.BasicText(
+                        v, maxLines = 1,
+                        style = TextStyle(fontFamily = SummaFonts.display, fontWeight = FontWeight(820), fontFeatureSettings = "tnum", color = fg),
+                        autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = 13.sp, maxFontSize = if (big) 25.sp else 21.sp, stepSize = 1.sp),
                     )
                 }
             }

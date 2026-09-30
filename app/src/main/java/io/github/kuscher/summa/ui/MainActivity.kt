@@ -119,11 +119,13 @@ import java.lang.ref.WeakReference
 class MainActivity : ComponentActivity() {
     /** The open sheet, for the debug hooks and window-level actions. */
     var session: Session? = null
+    lateinit var captionTracker: CaptionTracker
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         current = WeakReference(this)
+        captionTracker = CaptionTracker(this)
         val requested = sheetFromIntent(intent)
         if (Build.VERSION.SDK_INT >= 37) {
             try { setHandoffEnabled(true, HandoffActivityParams.Builder().build()) } catch (_: Throwable) {}
@@ -289,7 +291,7 @@ fun App(activity: MainActivity, requested: String?) {
                     },
             ) {
                 val wide = maxWidth >= 720.dp
-                val cap = rememberCaptionInsets()
+                val cap = rememberCaptionInsets(activity.captionTracker)
                 val meta = index.sheets.firstOrNull { it.id == id }
                 val sides = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
                 val topInsets = if (cap.present) WindowInsets(0) else WindowInsets.statusBars.union(WindowInsets.displayCutout).only(WindowInsetsSides.Top)
@@ -325,12 +327,15 @@ fun App(activity: MainActivity, requested: String?) {
                         BackHandler(enabled = !showList && screen == "sheet") { showList = true }
                         BackHandler(enabled = screen == "settings") { screen = "sheet" }
                         when {
-                            screen == "settings" -> SettingsScreen(onBack = { screen = "sheet" })
-                            showList || session == null -> LibraryScreen(app.library, index, id, search, searchFocus, ::open, ::newSheet, onSettings = { screen = "settings" })
+                            screen == "settings" -> Column { if (cap.present) Spacer(Modifier.height(cap.height)); SettingsScreen(onBack = { screen = "sheet" }) }
+                            showList || session == null -> Column { if (cap.present) Spacer(Modifier.height(cap.height)); LibraryScreen(app.library, index, id, search, searchFocus, ::open, ::newSheet, onSettings = { screen = "settings" }) }
                             else -> Column(Modifier.fillMaxSize()) {
-                                HeaderRow(cap, wideLayout = false) {
+                                // Narrow windows keep their header below the caption bar: the system's
+                                // own controls would leave no room for the title.
+                                if (cap.present) Spacer(Modifier.height(cap.height))
+                                HeaderRow(CaptionInsets(0.dp, 0.dp, 0.dp), wideLayout = false) {
                                     SheetHeader(session, meta, onBack = { showList = true }, onToggleSidebar = null, onSettings = { screen = "settings" },
-                                        onMessage = ::message, inCaption = cap.present, onNewWindow = null, onMini = null)
+                                        onMessage = ::message, inCaption = false, onNewWindow = null, onMini = null)
                                 }
                                 EditorPane(session, false, Modifier.weight(1f), onMessage = ::message)
                             }
@@ -395,11 +400,11 @@ fun RowScope.SheetHeader(
     }
     SymIcon(iconFor(meta?.title ?: ""), size = 19.sp, filled = true, tint = scheme.primary, modifier = Modifier.padding(start = 6.dp))
     Text(
-        meta?.title?.ifBlank { "Untitled" } ?: "Summa", Modifier.padding(start = 10.dp).weight(1f, fill = false),
+        meta?.title?.ifBlank { "Untitled" } ?: "Summa", Modifier.padding(start = 10.dp).weight(1f),
         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight(700)), maxLines = 1, overflow = TextOverflow.Ellipsis,
     )
-    Spacer(Modifier.weight(1f))
     if (session == null) return
+    val narrow = onBack != null
     val ev = session.evaluated
     if (ev?.result?.anyRateDependent == true) {
         val r by app.rates.rates.collectAsState()
@@ -411,7 +416,7 @@ fun RowScope.SheetHeader(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             SymIcon(Sym.CURRENCY_EXCHANGE, size = 16.sp, tint = scheme.tertiary)
-            Text("${if (r.source.contains("Central")) "ECB" else r.source.ifBlank { "Rates" }} · ${prettyDate(r.asOf)}",
+            if (!narrow) Text("${if (r.source.contains("Central")) "ECB" else r.source.ifBlank { "Rates" }} · ${prettyDate(r.asOf)}",
                 Modifier.padding(start = 6.dp), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
         }
     }
@@ -521,6 +526,7 @@ fun EditorPane(session: Session, wide: Boolean, modifier: Modifier, onMessage: (
     val b = lineOf(starts, if (sel.collapsed) sel.min else maxOf(sel.min, sel.max - 1))
     var statIdx by remember { mutableIntStateOf(0) }
     var keypad by rememberSaveable { mutableStateOf(false) }
+    DebugHooks.keypad = { keypad = !keypad }
     val ev = session.evaluated
     val display = run {
         if (ev == null) Display("Line ${a + 1}", null, false)
@@ -535,7 +541,7 @@ fun EditorPane(session: Session, wide: Boolean, modifier: Modifier, onMessage: (
         Box(Modifier.weight(1f).fillMaxWidth().let { if (keypad) it else it.imePadding() }) {
             SheetEditor(
                 session, settings, activeLine = a, scroll = scroll, compact = !wide || mini,
-                contentPadding = PaddingValues(top = 6.dp, bottom = if (mini) 76.dp else 120.dp),
+                contentPadding = PaddingValues(top = 6.dp, bottom = if (mini) 76.dp else if (keypad) 24.dp else 120.dp),
                 onInsert = { insertAtCursor(session, it) }, onMessage = onMessage, keypadOpen = keypad,
             )
             if (mini) {
@@ -544,13 +550,20 @@ fun EditorPane(session: Session, wide: Boolean, modifier: Modifier, onMessage: (
                     onCopy = { v -> copyToClipboard(app, v); onMessage("Copied $v") },
                     modifier = Modifier.align(Alignment.BottomEnd).padding(end = 10.dp, bottom = 12.dp),
                 )
-            } else {
+            } else if (!keypad) {
                 SheetToolbar(
                     display, onInsert = { insertAtCursor(session, it) }, onCycle = { statIdx++ }, onMessage = onMessage,
-                    keypadOpen = keypad, onKeypad = if (!wide) ({ keypad = !keypad }) else null,
+                    keypadOpen = keypad, onKeypad = if (!wide) ({ keypad = !keypad }) else null, compact = !wide,
                     modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp),
                 )
             }
+        }
+        // With the keypad open the toolbar gets its own row, so it never covers the line being typed.
+        if (keypad && !wide && !mini) Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainer).padding(top = 8.dp), contentAlignment = Alignment.Center) {
+            SheetToolbar(
+                display, onInsert = { insertAtCursor(session, it) }, onCycle = { statIdx++ }, onMessage = onMessage,
+                keypadOpen = true, onKeypad = { keypad = false }, compact = true,
+            )
         }
         if (keypad && !wide && !mini) Keypad(
             onText = { insertAtCursor(session, it) }, onBackspace = { backspace(session) },
@@ -590,4 +603,5 @@ object DebugHooks {
     var newSheet: () -> Unit = {}
     var screen: (String) -> Unit = {}
     var focus: () -> Unit = {}
+    var keypad: () -> Unit = {}
 }

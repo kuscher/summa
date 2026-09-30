@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.3 (2026-09-30)
+
+At home on the Googlebook.
+
+- **Title-bar header:** the sheet title, rates chip and actions draw into the window's caption bar,
+  clear of the system's window buttons (and they follow the buttons when you resize).
+- **Mini calculator** with its own scratch sheet. On Android 17 desktops it stays on top of other
+  windows (pin button; on by default, Settings › Mini calculator). Opens from a new **Quick Settings
+  tile**, the launcher, the header or **Ctrl+Shift+M**.
+- **"Calculate"** in every app's text-selection menu: a card with the answer, Copy, Insert answer
+  and Open in Summa.
+- **Open in new window** for any sheet, and the taskbar's New window (Ctrl+Shift+N).
+- **Launcher shortcuts:** New sheet, Mini calculator. **Share text** to Summa to start a sheet.
+- **Drag answers** out into other apps.
+- **Shortcut helper:** Summa's shortcuts appear in the system's list (Search+/).
+- **Phone keypad** in Material 3 Expressive: keys that squash as you press them, a row of units and
+  words, and a cookie-shaped return key.
+- **Handoff** of the open sheet between devices (Android 17).
+- Fixed: answers kept the old colour after switching between light and dark.
+
 ## 0.2 (2026-09-30)
 
 Units, money and time.
