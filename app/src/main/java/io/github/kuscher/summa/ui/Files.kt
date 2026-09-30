@@ -11,7 +11,10 @@ import io.github.kuscher.summa.data.Library
 import io.github.kuscher.summa.ui.editor.Session
 
 /** Import and export through the system file picker (no storage permission needed). */
-class FileActions(val exportText: () -> Unit, val exportMarkdown: () -> Unit, val import: () -> Unit)
+class FileActions(
+    val exportText: () -> Unit, val exportMarkdown: () -> Unit, val import: () -> Unit,
+    val exportCsv: () -> Unit, val exportHtml: () -> Unit, val exportPdf: () -> Unit,
+)
 
 @Composable
 fun rememberFileActions(session: Session?, onMessage: (String) -> Unit, onOpen: (String) -> Unit): FileActions {
@@ -22,6 +25,22 @@ fun rememberFileActions(session: Session?, onMessage: (String) -> Unit, onOpen: 
     }
     val saveMd = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/markdown")) { uri ->
         if (uri != null && session != null) { write(context, uri, markdown(session)); onMessage("Exported with answers") }
+    }
+    val saveCsv = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+        if (uri != null && session != null) { write(context, uri, Export.csv(SheetSnapshot.of(session))); onMessage("Exported as CSV") }
+    }
+    val saveHtml = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/html")) { uri ->
+        if (uri != null && session != null) { write(context, uri, Export.html(context, SheetSnapshot.of(session))); onMessage("Exported as a web page") }
+    }
+    val savePdf = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
+        if (uri != null && session != null) {
+            val snap = SheetSnapshot.of(session)
+            val (w, h) = Export.defaultPage(context)
+            val pages = try {
+                context.contentResolver.openOutputStream(uri, "wt")?.use { Export.pdf(context, snap, it, w, h) }
+            } catch (_: Exception) { null }
+            onMessage(if (pages == null) "Couldn't write the PDF" else "Exported a PDF (${pages} page${if (pages == 1) "" else "s"})")
+        }
     }
     val open = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         var last: String? = null
@@ -40,6 +59,9 @@ fun rememberFileActions(session: Session?, onMessage: (String) -> Unit, onOpen: 
         exportText = { saveText.launch(fileName(".txt")) },
         exportMarkdown = { saveMd.launch(fileName(".md")) },
         import = { open.launch(arrayOf("text/*", "application/octet-stream")) },
+        exportCsv = { saveCsv.launch(fileName(".csv")) },
+        exportHtml = { saveHtml.launch(fileName(".html")) },
+        exportPdf = { savePdf.launch(fileName(".pdf")) },
     )
 }
 

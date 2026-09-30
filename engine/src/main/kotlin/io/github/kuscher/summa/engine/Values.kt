@@ -58,3 +58,6 @@ data class Fmt(val kind: FmtKind, val n: Int = 0)
 
 /** A place for time-zone maths ("Tokyo"). */
 data class Place(val name: String, val zone: ZoneId) : Value
+
+/** A function the user defined: "tip(bill) = bill × 18%". [body] is tokenized with the parameters as variables. */
+class UserFn(val name: String, val params: List<String>, val body: List<Tok>)

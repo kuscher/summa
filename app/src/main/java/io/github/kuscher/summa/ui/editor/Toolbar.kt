@@ -169,7 +169,7 @@ fun DisplayPill(d: Display, onCycle: () -> Unit, onCopy: (String) -> Unit, modif
         modifier = modifier.height(if (big) 52.dp else 44.dp).padding(start = 4.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 18.dp, end = 6.dp)) {
-            Column(Modifier.widthIn(min = 64.dp, max = 260.dp).clickable(enabled = d.selection, onClick = onCycle)) {
+            Column(Modifier.widthIn(min = 64.dp, max = 260.dp).clickable(enabled = d.selection, onClickLabel = "Next statistic", onClick = onCycle)) {
                 Text(d.label.uppercase(), style = TextStyle(fontFamily = SummaFonts.sans, fontSize = 10.5.sp, fontWeight = FontWeight(700), letterSpacing = 0.8.sp), maxLines = 1)
                 AnimatedContent(
                     targetState = d.value ?: "—",

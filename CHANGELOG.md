@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.0 (2026-09-30)
+
+Parity with Soulver and Numi, and polish.
+
+- **Money over time:** compound interest (`$10,000 at 5% for 10 years compounded monthly`, or
+  daily, quarterly, continuously…), `interest on …`, `simple interest on …`, and loan payments
+  (`loan of $300k at 6% for 30 years` → `$1,798.65/month`; also `mortgage of`, `monthly payment on`).
+  Rates can be per month (`1% a month`) or a variable (`at rate`).
+- **Tax both ways:** `€1,350 incl 19% VAT` adds it, `€120 without 20% VAT` (or `excl`, `ex`,
+  `net of`) takes an included tax out. `19% VAT` stays 19% even if you've defined `vat`.
+- **Public holidays** for 22 countries (nationwide days, with substitute and observed days), picked
+  from your region or in Settings › Dates. Workday maths skips them: `workdays until Dec 18`,
+  `5 workdays after Dec 22`, `workdays between Oct 1 and Oct 31` (both ends count), and `next holiday`.
+- **Definitions sheet** (in the sheet list, and Settings › Definitions): its variables, units and
+  functions work in every sheet, the mini calculator and Calculate.
+- **Your own units:** `1 watermelon = 20 lb`, `1 coffee = $4.50` (follows the exchange rates),
+  `1 sprint = 2 weeks`, `1 box = 12`; plurals work (`3 watermelons`, `$20 in coffees`).
+- **Your own functions:** `tip(bill) = bill × 18%`, `area(w, h) = w × h`, even recursive ones with `if … then … else`.
+- **More functions:** `npr`/`permutations`, `secant`, `csc`, `cot`, `asinh`, `acosh`, `atanh`.
+- **Export as PDF, web page (HTML) or CSV**, next to Markdown and text, and **Print** (Ctrl+P; the
+  system dialog can also save a PDF). PDFs and pages keep the sheet's colours.
+- **Long sheets are fast:** a 2,000-line sheet re-evaluates in about 50 ms, and typing stays smooth
+  (answers and colours are drawn for the lines near the screen).
+- **Accessibility:** TalkBack reads each answer with its line, the answer and sheet menus are
+  available as actions, keys are buttons, and comments meet 4.5:1 contrast in every theme.
+- Fixed: the embedded font names no longer mention Google Sans (they're Summa Sans and Summa Mono throughout).
+
 ## 0.3 (2026-09-30)
 
 At home on the Googlebook.

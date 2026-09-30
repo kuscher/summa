@@ -161,6 +161,7 @@ class MainActivity : ComponentActivity() {
     override fun onPause() { session?.saveNow(); super.onPause() }
 
     /** Continue this sheet on another device (Android 17 Handoff). */
+    @androidx.annotation.RequiresApi(37)
     override fun onHandoffActivityDataRequested(info: HandoffActivityDataRequestInfo): HandoffActivityData {
         val s = session
         val extras = PersistableBundle()
@@ -188,6 +189,7 @@ class MainActivity : ComponentActivity() {
             KeyboardShortcutInfo("Mini calculator", KeyEvent.KEYCODE_M, c or KeyEvent.META_SHIFT_ON),
             KeyboardShortcutInfo("Show or hide the sheet list", KeyEvent.KEYCODE_B, c),
             KeyboardShortcutInfo("Settings", KeyEvent.KEYCODE_COMMA, c),
+            KeyboardShortcutInfo("Print or save as PDF", KeyEvent.KEYCODE_P, c),
         )))
         data?.add(KeyboardShortcutGroup("Autocomplete", listOf(
             KeyboardShortcutInfo("Insert suggestion", KeyEvent.KEYCODE_TAB, 0),
@@ -234,7 +236,7 @@ fun App(activity: MainActivity, requested: String?) {
     SummaTheme(settings) {
         var currentId by rememberSaveable {
             mutableStateOf(requested ?: app.prefs.getString("lastSheet")?.takeIf { id -> index.sheets.any { it.id == id && it.trashedAt == null } }
-                ?: index.sheets.filter { it.trashedAt == null && it.id != Library.SCRATCH }.maxByOrNull { it.updated }?.id)
+                ?: index.sheets.filter { it.trashedAt == null && !Library.isSpecial(it.id) }.maxByOrNull { it.updated }?.id)
         }
         var screen by rememberSaveable { mutableStateOf("sheet") }
         var showList by rememberSaveable { mutableStateOf(false) }
@@ -286,6 +288,7 @@ fun App(activity: MainActivity, requested: String?) {
                                 session?.let { moveLine(it, if (e.key == Key.DirectionUp) -1 else 1) }; true
                             }
                             ctrl && e.key == Key.B -> { app.prefs.update { it.copy(sidebar = !it.sidebar) }; true }
+                            ctrl && e.key == Key.P -> { session?.let { Export.print(activity, SheetSnapshot.of(it)) }; true }
                             else -> false
                         }
                     },
@@ -317,7 +320,8 @@ fun App(activity: MainActivity, requested: String?) {
                                 }
                                 val mod = Modifier.weight(1f)
                                 when {
-                                    screen == "settings" -> SettingsScreen(onBack = { screen = "sheet" }, modifier = mod, showHeader = false)
+                                    screen == "settings" -> SettingsScreen(onBack = { screen = "sheet" }, modifier = mod, showHeader = false,
+                                        onOpenDefinitions = { open(app.library.definitions().id) })
                                     session == null -> EmptyState(mod) { newSheet() }
                                     else -> EditorPane(session, true, mod, onMessage = ::message)
                                 }
@@ -327,7 +331,7 @@ fun App(activity: MainActivity, requested: String?) {
                         BackHandler(enabled = !showList && screen == "sheet") { showList = true }
                         BackHandler(enabled = screen == "settings") { screen = "sheet" }
                         when {
-                            screen == "settings" -> Column { if (cap.present) Spacer(Modifier.height(cap.height)); SettingsScreen(onBack = { screen = "sheet" }) }
+                            screen == "settings" -> Column { if (cap.present) Spacer(Modifier.height(cap.height)); SettingsScreen(onBack = { screen = "sheet" }, onOpenDefinitions = { open(app.library.definitions().id) }) }
                             showList || session == null -> Column { if (cap.present) Spacer(Modifier.height(cap.height)); LibraryScreen(app.library, index, id, search, searchFocus, ::open, ::newSheet, onSettings = { screen = "settings" }) }
                             else -> Column(Modifier.fillMaxSize()) {
                                 // Narrow windows keep their header below the caption bar: the system's
@@ -421,6 +425,7 @@ fun RowScope.SheetHeader(
         }
     }
     var more by remember { mutableStateOf(false) }
+    var exportMenu by remember { mutableStateOf(false) }
     val files = rememberFileActions(session, onMessage) { DebugHooks.open(it) }
     if (onMini != null) HeaderButton(Sym.PICTURE_IN_PICTURE_ALT, "Mini calculator", inCaption, onMini)
     HeaderButton(Sym.IOS_SHARE, "Share", inCaption) { shareSheet(context, session) }
@@ -433,16 +438,28 @@ fun RowScope.SheetHeader(
                 onClick = { more = false; onNewWindow(session.id) })
             DropdownMenuItem(text = { Text("Copy lines and answers") }, leadingIcon = { SymIcon(Sym.CONTENT_COPY, size = 20.sp) },
                 onClick = { more = false; copyToClipboard(context, withAnswers(session)); onMessage("Copied the sheet with its answers") })
-            DropdownMenuItem(text = { Text("Export as text…") }, leadingIcon = { SymIcon(Sym.FILE_DOWNLOAD, size = 20.sp) },
-                onClick = { more = false; files.exportText() })
-            DropdownMenuItem(text = { Text("Export with answers (Markdown)…") }, leadingIcon = { SymIcon(Sym.FILE_DOWNLOAD, size = 20.sp) },
-                onClick = { more = false; files.exportMarkdown() })
+            DropdownMenuItem(text = { Text("Export…") }, leadingIcon = { SymIcon(Sym.FILE_DOWNLOAD, size = 20.sp) },
+                trailingIcon = { SymIcon(Sym.CHEVRON_RIGHT, size = 18.sp) },
+                onClick = { more = false; exportMenu = true })
+            DropdownMenuItem(text = { Text("Print…") }, leadingIcon = { SymIcon(Sym.PRINT, size = 20.sp) },
+                trailingIcon = { Text("Ctrl P", style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant) },
+                onClick = { more = false; Export.print(context, SheetSnapshot.of(session)) })
             DropdownMenuItem(text = { Text("Import sheets…") }, leadingIcon = { SymIcon(Sym.FILE_UPLOAD, size = 20.sp) },
                 onClick = { more = false; files.import() })
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
             DropdownMenuItem(text = { Text("Move to trash") }, leadingIcon = { SymIcon(Sym.DELETE, size = 20.sp) },
                 onClick = { more = false; app.library.trash(session.id) })
             DropdownMenuItem(text = { Text("Settings") }, leadingIcon = { SymIcon(Sym.SETTINGS, size = 20.sp) }, onClick = { more = false; onSettings() })
+        }
+        DropdownMenu(exportMenu, onDismissRequest = { exportMenu = false }, shape = RoundedCornerShape(18.dp)) {
+            Text("Export this sheet", Modifier.padding(start = 16.dp, top = 8.dp, bottom = 4.dp), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
+            for ((label, sym, go) in listOf(
+                Triple("PDF", Sym.PICTURE_AS_PDF, files.exportPdf),
+                Triple("Web page (HTML)", Sym.CODE, files.exportHtml),
+                Triple("Spreadsheet (CSV)", Sym.TABLE_VIEW, files.exportCsv),
+                Triple("Markdown with answers", Sym.DESCRIPTION, files.exportMarkdown),
+                Triple("Plain text", Sym.SHORT_TEXT, files.exportText),
+            )) DropdownMenuItem(text = { Text(label) }, leadingIcon = { SymIcon(sym, size = 20.sp) }, onClick = { exportMenu = false; go() })
         }
     }
 }

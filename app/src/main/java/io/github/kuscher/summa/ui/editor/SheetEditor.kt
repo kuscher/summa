@@ -32,6 +32,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -48,6 +49,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
@@ -116,7 +118,15 @@ private class SyntaxColors : OutputTransformation {
     }
 }
 
-private fun spanStyle(style: Style, c: SummaColors): SpanStyle? = when (style) {
+/** Above this many lines, syntax colours drop their weight changes (see SheetEditor). */
+private const val LIGHT_SYNTAX_LINES = 400
+
+private fun spanStyle(style: Style, c: SummaColors, light: Boolean = false): SpanStyle? = if (light) when (style) {
+    Style.HEADING -> SpanStyle(color = c.heading, fontWeight = FontWeight(760))
+    Style.REFERENCE, Style.AGGREGATE -> SpanStyle(color = c.reference, background = c.referenceBg)
+    Style.NUMBER -> null
+    else -> spanStyle(style, c)?.let { SpanStyle(color = it.color) }
+} else when (style) {
     Style.NUMBER -> SpanStyle(color = c.number, fontWeight = FontWeight(560))
     Style.UNIT -> SpanStyle(color = c.unit, fontWeight = FontWeight(560))
     Style.VARIABLE -> SpanStyle(color = c.variable, fontWeight = FontWeight(640))
@@ -154,13 +164,31 @@ fun SheetEditor(
     val starts = remember(text.toString()) { lineStarts(text) }
     var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
     val syntax = remember { SyntaxColors() }
-    syntax.styles = remember(ev, c) {
+    // Long sheets get lighter colouring: colour-only spans (weight changes split text shaping)
+    // and only for lines near the viewport, so re-layouts of thousands of lines stay quick.
+    val light = (ev?.result?.lines?.size ?: 0) > LIGHT_SYNTAX_LINES
+    val styledLines by remember(scroll, light) {
+        derivedStateOf {
+            val l = layout
+            if (!light || l == null) 0 to Int.MAX_VALUE
+            else {
+                val view = scroll.viewportSize.takeIf { it > 0 } ?: 2400
+                val bucket = scroll.value / 1024 * 1024
+                val top = (bucket - 2 * view).coerceAtLeast(0).toFloat()
+                val bottom = (bucket + 3 * view + 1024).toFloat().coerceAtMost(l.size.height.toFloat())
+                l.getLineForVerticalPosition(top).let { l.getLineStart(it) } to l.getLineForVerticalPosition(bottom).let { l.getLineEnd(it) }
+            }
+        }
+    }
+    syntax.styles = remember(ev, c, styledLines) {
         val out = ArrayList<Triple<Int, Int, SpanStyle>>()
         if (ev != null) {
             val evStarts = lineStarts(ev.text)
+            val (from, to) = styledLines
             for ((i, lr) in ev.result.lines.withIndex()) {
                 val base = evStarts.getOrNull(i) ?: continue
-                for (sp in lr.spans) spanStyle(sp.style, c)?.let { out += Triple(base + sp.start, base + sp.end, it) }
+                if (base > to || (evStarts.getOrNull(i + 1) ?: Int.MAX_VALUE) < from) continue
+                for (sp in lr.spans) spanStyle(sp.style, c, light)?.let { out += Triple(base + sp.start, base + sp.end, it) }
             }
         }
         out
@@ -177,6 +205,15 @@ fun SheetEditor(
     val railWidth = if (compact) (settings.answerWidth * 0.62f).dp.coerceIn(104.dp, 160.dp) else settings.answerWidth.dp
     val gutter = if (settings.lineNumbers && !compact) 40.dp else 12.dp
 
+    // Only rows near the viewport get answers and line numbers (a 2,000-line sheet stays smooth).
+    // Bucketed so scrolling recomposes every few hundred pixels, not every frame.
+    val visible by remember(scroll) {
+        derivedStateOf {
+            val view = scroll.viewportSize.takeIf { it > 0 } ?: 2400
+            val bucket = scroll.value / 512 * 512
+            (bucket - view).toFloat() to (bucket + 2 * view + 512).toFloat()
+        }
+    }
     Box(modifier.fillMaxSize().verticalScroll(scroll)) {
         Row(
             Modifier.fillMaxWidth().padding(contentPadding)
@@ -196,7 +233,8 @@ fun SheetEditor(
                 val l = layout
                 if (settings.lineNumbers && !compact && l != null) {
                     val len = l.layoutInput.text.length
-                    val rows = starts.withIndex().filter { it.value <= len }.map { (i, s) ->
+                    val (from, to) = visible
+                    val rows = starts.withIndex().filter { it.value <= len && l.getLineTop(l.getLineForOffset(it.value)).let { t -> t >= from && t <= to } }.map { (i, s) ->
                         val ln = l.getLineForOffset(s)
                         Triple(i, l.getLineTop(ln), l.getLineBottom(ln) - l.getLineTop(ln))
                     }
@@ -212,14 +250,15 @@ fun SheetEditor(
             // Autocomplete for the word before the cursor.
             val sel = session.state.selection
             val word = remember(text.toString(), sel) { wordBefore(text, sel) }
-            val vars = remember(ev) { ev?.result?.lines?.mapNotNull { it.declares }?.distinct().orEmpty() }
+            val defs = ev?.result?.definitions ?: io.github.kuscher.summa.engine.Definitions.EMPTY
+            val vars = remember(ev) { defs.vars.keys.toList() }
             var dismissedAt by remember { mutableIntStateOf(-1) }
             var pick by remember { mutableIntStateOf(0) }
             var navigated by remember { mutableStateOf(false) }
             var focused by remember { mutableStateOf(false) }
-            val suggestions = remember(word, vars) {
+            val suggestions = remember(word, vars, defs) {
                 if (word == null || (word.prefix.length < 2 && !word.afterNumber)) emptyList()
-                else Completions.suggest(word.prefix, vars, word.afterNumber, limit = 6)
+                else Completions.suggest(word.prefix, vars, word.afterNumber, limit = 6, defs = defs)
             }
             val showAc = focused && suggestions.isNotEmpty() && word != null && dismissedAt != sel.start
             LaunchedEffect(word?.start, word?.prefix) { pick = 0; navigated = false }
@@ -266,7 +305,7 @@ fun SheetEditor(
                 }
             }
             }
-            AnswerRail(session, layout, starts, activeLine, railWidth, settings, compact, onMessage, onInsert)
+            AnswerRail(session, layout, starts, activeLine, railWidth, settings, compact, onMessage, onInsert, visible)
         }
     }
 }
@@ -342,6 +381,7 @@ private fun AutocompleteList(items: List<Completion>, pick: Int, onPick: (Comple
 private fun AnswerRail(
     session: Session, layout: TextLayoutResult?, starts: IntArray, activeLine: Int, width: androidx.compose.ui.unit.Dp,
     settings: Settings, compact: Boolean, onMessage: (String) -> Unit, onInsert: (String) -> Unit,
+    visible: Pair<Float, Float>,
 ) {
     val c = LocalSummaColors.current
     val density = LocalDensity.current
@@ -363,7 +403,8 @@ private fun AnswerRail(
                 else {
                     val ln = l.getLineForOffset(s)
                     val top = l.getLineTop(ln)
-                    Triple(i, answer, Pair(top, l.getLineBottom(ln) - top) to lr)
+                    if (top < visible.first || top > visible.second) null
+                    else Triple(i, answer, Pair(top, l.getLineBottom(ln) - top) to lr)
                 }
             }
             for ((i, answer, geo) in placed) {
@@ -415,12 +456,16 @@ private fun Answer(
                         flags = android.view.View.DRAG_FLAG_GLOBAL,
                     )
                 }
-                .clickable {
+                .clickable(onClickLabel = "Copy", role = androidx.compose.ui.semantics.Role.Button) {
                     copyToClipboard(context, answer)
                     onMessage("Copied $answer")
                 }
                 .padding(horizontal = 10.dp, vertical = 1.dp)
-                .semantics { contentDescription = "Line ${index + 1}, $answer. Click to copy." },
+                .semantics {
+                    contentDescription = "Line ${index + 1}: $answer"
+                    // TalkBack can't right-click: the answer menu (convert, insert a reference) as an action.
+                    customActions = listOf(androidx.compose.ui.semantics.CustomAccessibilityAction("Answer options") { menu = true; true })
+                },
         ) {
             Text(
                 answer, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End,

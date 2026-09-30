@@ -18,6 +18,7 @@ class MiniTileService : TileService() {
         }
     }
 
+    @android.annotation.SuppressLint("StartActivityAndCollapseDeprecated") // only below Android 14
     override fun onClick() {
         val i = Intent(this, MiniActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         if (Build.VERSION.SDK_INT >= 34) {

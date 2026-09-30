@@ -30,6 +30,7 @@ import androidx.compose.material3.ToggleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,7 +51,7 @@ import io.github.kuscher.summa.ui.SymIcon
 import io.github.kuscher.summa.ui.theme.schemeFor
 
 @Composable
-fun SettingsScreen(onBack: () -> Unit, modifier: Modifier = Modifier, showHeader: Boolean = true) {
+fun SettingsScreen(onBack: () -> Unit, modifier: Modifier = Modifier, showHeader: Boolean = true, onOpenDefinitions: (() -> Unit)? = null) {
     val app = SummaApp.instance
     val s by app.prefs.state.collectAsState()
     val rates by app.rates.rates.collectAsState()
@@ -89,6 +90,19 @@ fun SettingsScreen(onBack: () -> Unit, modifier: Modifier = Modifier, showHeader
                     Row(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                         SymIcon(Sym.REFRESH, size = 18.sp, tint = scheme.onSecondaryContainer)
                         Text("Update rates now", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelLarge, color = scheme.onSecondaryContainer)
+                    }
+                }
+            }
+            Group("Dates") {
+                HolidayPicker(s.holidays, app.prefs.holidayCountry(s)) { v -> set { it.copy(holidays = v) } }
+            }
+            Group("Definitions") {
+                Text("Variables, units and functions on the definitions sheet work in every sheet: vat = 20%, 1 coffee = \$4.50, tip(bill) = bill × 18%.",
+                    style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
+                if (onOpenDefinitions != null) Surface(onClick = onOpenDefinitions, shape = CircleShape, color = scheme.secondaryContainer, modifier = Modifier.padding(top = 10.dp)) {
+                    Row(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        SymIcon(Sym.FUNCTION, size = 18.sp, tint = scheme.onSecondaryContainer)
+                        Text("Open definitions", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelLarge, color = scheme.onSecondaryContainer)
                     }
                 }
             }
@@ -159,6 +173,44 @@ private fun Choice(label: String, value: String, options: List<Pair<String, Stri
                         else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
                     },
                 ) { Text(text) }
+            }
+        }
+    }
+}
+
+/** Public holidays: Auto (region), None, or one of the countries Summa knows. */
+@Composable
+private fun HolidayPicker(value: String, effective: String, onPick: (String) -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    var open by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    fun nameOf(code: String) = io.github.kuscher.summa.engine.Holidays.country(code)?.name ?: code
+    val shown = when (value) {
+        "auto" -> if (effective.isEmpty()) "Auto (none for this region)" else "Auto: ${nameOf(effective)}"
+        "none" -> "None"
+        else -> nameOf(value)
+    }
+    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f).padding(end = 12.dp)) {
+            Text("Public holidays", style = MaterialTheme.typography.bodyLarge)
+            Text("Workday maths skips them: 5 workdays after Dec 22, workdays until Easter, next holiday. Nationwide holidays only.",
+                style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+        }
+        Box {
+            Surface(onClick = { open = true }, shape = CircleShape, color = scheme.secondaryContainer) {
+                Row(Modifier.padding(start = 16.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(shown, style = MaterialTheme.typography.labelLarge, color = scheme.onSecondaryContainer, maxLines = 1)
+                    SymIcon(Sym.EXPAND_MORE, size = 18.sp, tint = scheme.onSecondaryContainer)
+                }
+            }
+            androidx.compose.material3.DropdownMenu(open, onDismissRequest = { open = false }, shape = RoundedCornerShape(18.dp),
+                modifier = Modifier.height(420.dp)) {
+                val options = listOf("auto" to "Auto (device region)", "none" to "None") +
+                    io.github.kuscher.summa.engine.Holidays.countries.sortedBy { it.name }.map { it.code to it.name }
+                for ((code, name) in options) androidx.compose.material3.DropdownMenuItem(
+                    text = { Text(name) },
+                    trailingIcon = { if (code == value) SymIcon(Sym.CHECK, size = 18.sp) },
+                    onClick = { open = false; onPick(code) },
+                )
             }
         }
     }

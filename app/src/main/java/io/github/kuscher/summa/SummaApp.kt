@@ -4,6 +4,9 @@ import android.app.Application
 import io.github.kuscher.summa.data.Library
 import io.github.kuscher.summa.data.Prefs
 import io.github.kuscher.summa.data.RatesRepo
+import io.github.kuscher.summa.engine.Definitions
+import io.github.kuscher.summa.engine.SheetEngine
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -17,6 +20,16 @@ class SummaApp : Application() {
     lateinit var rates: RatesRepo; private set
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    /** What the definitions sheet declares; every other sheet sees it. Its own session keeps it live while you type. */
+    val definitions = MutableStateFlow(Definitions.EMPTY)
+
+    /** Evaluates the saved definitions sheet (at start, and when settings or rates change). */
+    fun loadDefinitions() {
+        if (library.get(Library.DEFINITIONS) == null) { definitions.value = Definitions.EMPTY; return }
+        val text = library.text(Library.DEFINITIONS)
+        definitions.value = SheetEngine(prefs.engineSettings(), rates.rates.value).evaluate(text).definitions
+    }
+
     override fun onCreate() {
         super.onCreate()
         instance = this
@@ -27,6 +40,7 @@ class SummaApp : Application() {
         scope.launch {
             prefs.state.map { it.onlineRates to it.crypto }.distinctUntilChanged().collect { rates.onSettingsChanged() }
         }
+        scope.launch { loadDefinitions() }
         if (!prefs.value.firstRunDone) {
             if (library.state.value.sheets.isEmpty()) {
                 library.create(Samples.LISBON)
@@ -61,11 +75,16 @@ object Samples {
         3 pm Lisbon in Tokyo
         today + 3 weeks
 
+        # Money over time
+        $10,000 at 5% for 10 years
+        loan of $300k at 6% for 30 years
+
         # Your own names
         rate = $85/hour
         work = 6.5 hours
         rate × work
         + 20% tax
+        // Names on the Definitions sheet (in the sheet list) work in every sheet.
 
         // Lines that start with // are notes. Click an answer to copy it,
         // right-click it for more. Ctrl+/ turns a line into a note.

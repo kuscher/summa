@@ -22,9 +22,35 @@ class LineResult(
     val tags: Set<String> = emptySet(),
     val referenced: Set<Int> = emptySet(),
     val error: String? = null,
+    /** "1 watermelon = 20 lb": the unit this line defines (the value is what one of it is). */
+    val definesUnit: String? = null,
+    /** "tip(bill) = bill × 18%": the function this line defines. */
+    val definesFunction: UserFn? = null,
 )
 
-class SheetResult(val lines: List<LineResult>, private val settings: EngineSettings, private val rates: Rates, private val now: ZonedDateTime) {
+/** A unit the user defined, with the names it answers to (singular and plural). */
+class CustomUnit(val names: List<String>, val def: UnitDef)
+
+/**
+ * What a sheet declares, for the definitions sheet: its variables (final values), units and
+ * functions become available in every other sheet.
+ */
+class Definitions(
+    val vars: Map<String, Value> = emptyMap(),
+    val units: List<CustomUnit> = emptyList(),
+    val functions: Map<String, UserFn> = emptyMap(),
+) {
+    val isEmpty get() = vars.isEmpty() && units.isEmpty() && functions.isEmpty()
+    /** Every name, for autocomplete. */
+    val names: List<String> get() = vars.keys.toList() + units.flatMap { it.names } + functions.keys.map { "$it()" }
+    companion object { val EMPTY = Definitions() }
+}
+
+class SheetResult(
+    val lines: List<LineResult>, private val settings: EngineSettings, private val rates: Rates, private val now: ZonedDateTime,
+    /** Everything declared by the end of the sheet (plus what came in from the definitions sheet). */
+    val definitions: Definitions = Definitions.EMPTY,
+) {
     val anyTimeDependent get() = lines.any { it.timeDependent }
     val anyRateDependent get() = lines.any { it.rateDependent }
 
@@ -73,52 +99,140 @@ class SheetEngine(
     var settings: EngineSettings = EngineSettings(),
     var rates: Rates = Rates.bundled,
 ) {
-    private val cache = object : LinkedHashMap<String, Parsed>(512, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Parsed>?) = size > 4000
+    /** Parsed lines by (text, names in scope). The scope key is one shared string per scope, so keys are cheap. */
+    private data class CacheKey(val line: String, val scope: Long)
+    private val cache = object : LinkedHashMap<CacheKey, Parsed>(512, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<CacheKey, Parsed>?) = size > 6000
     }
 
-    /** Global variables from the definitions sheet or settings. */
+    /** The values of the lines above, without copying them for every line (that was O(n²)). */
+    private class LineValues(private val above: List<LineResult>, override val size: Int) : AbstractList<Value?>() {
+        override fun get(index: Int): Value? = above[index].value
+    }
+
+    /** Global variables from settings. */
     var globals: Map<String, Value> = emptyMap()
+
+    /** Variables, units and functions from the definitions sheet, seen by every line. */
+    var definitions: Definitions = Definitions.EMPTY
 
     fun evaluate(text: String, now: ZonedDateTime = ZonedDateTime.now(settings.zone)): SheetResult =
         evaluate(text.split('\n'), now)
 
     fun evaluate(lines: List<String>, now: ZonedDateTime = ZonedDateTime.now(settings.zone)): SheetResult {
         val out = ArrayList<LineResult>(lines.size)
-        val vars = LinkedHashMap<String, Value>(globals)
-        val varTrie = PhraseTrie<String>()
-        for (k in globals.keys) varTrie.put(Lexicon.keys(k), k)
-        var varSig = varTrie.size
+        val base = LinkedHashMap<String, Value>(definitions.vars).apply { putAll(globals) }
+        val scope = Scope(base, definitions)
         val fmt = Formatter(settings)
         for ((idx, line) in lines.withIndex()) {
             val r = try {
-                evalLine(idx, line, out, vars, varTrie, now, fmt)
+                evalLine(idx, line, out, scope, now, fmt)
             } catch (e: StackOverflowError) {
                 LineResult(LineKind.EXPR, null, null, null, emptyList(), error = "too deep")
             }
             out += r
             if (r.kind == LineKind.DIVIDER) {
                 // A divider starts a fresh scope for variables, like Soulver.
-                vars.clear(); vars.putAll(globals)
+                scope.vars.clear(); scope.vars.putAll(base)
             }
-            r.declares?.let { name ->
-                r.exact?.let { vars[name] = it }
-                if (varTrie.longest(Lexicon.keys(name), 0)?.first != Lexicon.keys(name).size) varTrie.put(Lexicon.keys(name), name)
-            }
-            varSig = varTrie.size
+            r.declares?.let { name -> r.exact?.let { scope.declareVar(name, it) } }
+            r.definesUnit?.let { name -> (r.exact as? Qty)?.let { q -> makeUnit(name, q)?.let { scope.declareUnit(it) } } }
+            r.definesFunction?.let { scope.declareFunction(it) }
         }
-        return SheetResult(out, settings, rates, now)
+        return SheetResult(out, settings, rates, now, Definitions(LinkedHashMap(scope.vars), scope.units.toList(), LinkedHashMap(scope.funcs)))
     }
 
-    private class Parsed(val kind: LineKind, val spans: List<Span>, val tokens: List<Tok>, val declares: String?, val op: String?, val tags: Set<String>)
+    /** Names in scope while evaluating a sheet: variables, units and functions, with their tries. */
+    private class Scope(initial: Map<String, Value>, defs: Definitions) {
+        val vars = LinkedHashMap<String, Value>(initial)
+        val varTrie = PhraseTrie<String>()
+        val units = ArrayList<CustomUnit>()
+        val unitTrie = PhraseTrie<UnitDef>()
+        val funcs = LinkedHashMap<String, UserFn>()
+        val funcTrie = PhraseTrie<String>()
+        /**
+         * Part of the parse cache key: a line parses differently when the names in scope change.
+         * A 64-bit hash chained over the names as they're declared (cheap, and the same on every run).
+         */
+        var key = 0L; private set
+
+        init {
+            for (k in vars.keys) varTrie.put(Lexicon.keys(k), k)
+            for (k in vars.keys) mix("v", k)
+            for (u in defs.units) addUnit(u)
+            for (f in defs.functions.values) addFunction(f)
+        }
+
+        fun declareVar(name: String, v: Value) {
+            val isNew = name !in vars
+            vars[name] = v
+            val k = Lexicon.keys(name)
+            if (varTrie.longest(k, 0)?.first != k.size) varTrie.put(k, name)
+            if (isNew) mix("v", name)
+        }
+        fun declareUnit(u: CustomUnit) = addUnit(u)
+        fun declareFunction(f: UserFn) = addFunction(f)
+
+        private fun addUnit(u: CustomUnit) {
+            units.removeAll { it.def.id == u.def.id }
+            units += u
+            for (n in u.names) unitTrie.put(Lexicon.keys(n), u.def, overwrite = true)
+            mix("u", u.def.id)
+        }
+        private fun addFunction(f: UserFn) {
+            funcs[f.name] = f
+            funcTrie.put(Lexicon.keys(f.name), f.name, overwrite = true)
+            mix("f", f.name)
+        }
+        /** FNV-1a over "kind:name". */
+        private fun mix(kind: String, name: String) {
+            var h = key xor 0x3A
+            for (c in kind + ":" + name) h = (h xor c.code.toLong()) * 1099511628211L
+            key = h * 1099511628211L
+        }
+    }
+
+    private val PLAIN = object : FactorResolver { override fun factor(u: UnitDef): Rational? = if (u.via != null) null else u.factor }
+
+    /** A unit from "1 NAME = value": counted things, lengths, money ("1 coffee = $4.50" follows the rates). */
+    private fun makeUnit(name: String, q: Qty): CustomUnit? {
+        if (q.unit.isTemperature || q.num.isZero) return null
+        val (one, many) = plural(name.trim())
+        val id = "custom:" + one.lowercase()
+        val r = q.num.toRational()
+        val special = q.unit.terms.any { it.first.kind != UnitKind.NORMAL || it.first.via != null }
+        val def = when {
+            q.isPlain -> UnitDef(id, one, Dim.NONE, r, word = one to many)
+            special -> UnitDef(id, one, q.unit.dim, r, word = one to many, via = q.unit)
+            else -> UnitDef(id, one, q.unit.dim, r * (q.unit.factor(PLAIN) ?: return null), word = one to many)
+        }
+        return CustomUnit(listOf(one, many).distinct(), def)
+    }
+
+    /** English plurals, good enough for unit names: box → boxes, berry → berries, sprint → sprints. */
+    private fun plural(w: String): Pair<String, String> {
+        val lower = w.lowercase()
+        val many = when {
+            lower.endsWith("s") || lower.endsWith("x") || lower.endsWith("z") || lower.endsWith("ch") || lower.endsWith("sh") -> w + "es"
+            lower.length > 1 && lower.endsWith("y") && lower[lower.length - 2] !in "aeiou" -> w.dropLast(1) + "ies"
+            else -> w + "s"
+        }
+        return w to many
+    }
+
+    private class Parsed(
+        val kind: LineKind, val spans: List<Span>, val tokens: List<Tok>, val declares: String?, val op: String?, val tags: Set<String>,
+        val unitName: String? = null, val fn: UserFn? = null,
+    )
 
     private fun evalLine(
-        idx: Int, line: String, above: List<LineResult>, vars: Map<String, Value>, varTrie: PhraseTrie<String>,
+        idx: Int, line: String, above: List<LineResult>, scope: Scope,
         now: ZonedDateTime, fmt: Formatter,
     ): LineResult {
-        val key = line + "\u0000" + vars.keys.joinToString("\u0001")
-        val parsed = cache.getOrPut(key) { parse(line, varTrie) }
+        val parsed = cache.getOrPut(CacheKey(line, scope.key)) { parse(line, scope) }
         if (parsed.kind != LineKind.EXPR) return LineResult(parsed.kind, null, null, null, parsed.spans)
+        if (parsed.fn != null) return LineResult(LineKind.EXPR, null, null, null, parsed.spans, definesFunction = parsed.fn)
+        val vars = scope.vars
         if (parsed.tokens.isEmpty()) {
             // "total cost =" with nothing after it: a subtotal into a variable.
             return LineResult(LineKind.EXPR, null, null, null, parsed.spans, declares = null, tags = parsed.tags)
@@ -136,10 +250,11 @@ class SheetEngine(
 
         val ctx = EvalCtx(
             settings, rates, now, vars,
-            lines = above.map { it.value },
+            lines = LineValues(above, above.size),
             prev = prevValue,
             aggregate = { kind -> blockStat(kind, above) },
             tagStat = { kind, tag -> tagStat(kind, tag, above) },
+            functions = scope.funcs,
         )
         val isTotal = toks.size == 1 && toks[0].type == T.AGG && toks[0].v != "prev"
         var error: String? = null
@@ -151,6 +266,7 @@ class SheetEngine(
                 break
             } catch (e: EvalError) {
                 error = e.message
+                if (e.final) break
             } catch (e: ArithmeticException) {
                 error = e.message
             }
@@ -167,6 +283,7 @@ class SheetEngine(
             declares = parsed.declares, isTotal = isTotal,
             timeDependent = ctx.timeDependent, rateDependent = ctx.rateDependent,
             tags = parsed.tags, referenced = ctx.referencedLines.toSet(),
+            definesUnit = parsed.unitName,
         )
     }
 
@@ -259,7 +376,64 @@ class SheetEngine(
     private val LABEL = Regex("^(\\s*)([^:=\"]*?\\p{L}[^:=\"]*?):(?=\\s|$)")
     private val ASSIGN = Regex("^\\s*([\\p{L}_][\\p{L}\\p{N}_ ()']*?)\\s*(\\+=|-=|:=|=)(?!=)\\s*(.*)$")
 
-    private fun parse(line: String, varTrie: PhraseTrie<String>): Parsed {
+    private val UNIT_DEF = Regex("^(\\s*)(?:1|one)\\s+([\\p{L}][\\p{L}'’-]*(?: [\\p{L}][\\p{L}'’-]*){0,2})\\s*(=)\\s*(\\S.*)$", RegexOption.IGNORE_CASE)
+    private val FN_DEF = Regex("^(\\s*)([\\p{L}_][\\p{L}\\p{N}_]*)\\(\\s*([\\p{L}_][\\p{L}\\p{N}_]*(?:\\s*,\\s*[\\p{L}_][\\p{L}\\p{N}_]*)*)\\s*\\)\\s*(=)\\s*(\\S.*)$")
+
+    private fun env(scope: Scope, vars: PhraseTrie<String> = scope.varTrie, funcs: PhraseTrie<String> = scope.funcTrie) =
+        LexEnv(settings, vars, units = scope.unitTrie, funcs = funcs)
+
+    /** "tip(bill) = bill × 18%": the body is kept as tokens, with the parameters as variables. */
+    private fun parseFunction(line: String, m: MatchResult, scope: Scope): Parsed? {
+        val name = m.groupValues[2]
+        val params = m.groupValues[3].split(',').map { it.trim() }
+        if (params.toSet().size != params.size) return null
+        // Built-in functions, units and words keep their meaning.
+        if (isBuiltIn(name) && name !in scope.funcs) return null
+        val vars = PhraseTrie<String>()
+        for (k in scope.vars.keys) vars.put(Lexicon.keys(k), k)
+        for (p in params) vars.put(Lexicon.keys(p), p, overwrite = true)
+        val funcs = PhraseTrie<String>()
+        for (f in scope.funcs.keys + name) funcs.put(Lexicon.keys(f), f)
+        val bodyStart = m.groups[5]!!.range.first
+        val lexed = Tokenizer.lex(line.substring(bodyStart), bodyStart, env(scope, vars, funcs))
+        if (lexed.tokens.isEmpty()) return null
+        val spans = ArrayList<Span>()
+        spans += Span(m.groups[2]!!.range.first, m.groups[2]!!.range.last + 1, Style.FUNCTION)
+        for (p in Regex("[\\p{L}_][\\p{L}\\p{N}_]*").findAll(m.groupValues[3])) {
+            val at = m.groups[3]!!.range.first + p.range.first
+            spans += Span(at, at + p.value.length, Style.VARIABLE)
+        }
+        spans += Span(m.groups[4]!!.range.first, m.groups[4]!!.range.last + 1, Style.OPERATOR)
+        spans += lexed.spans
+        return Parsed(LineKind.EXPR, spans.sortedBy { it.start }, lexed.tokens, null, null, emptySet(), fn = UserFn(name, params, lexed.tokens))
+    }
+
+    /** "1 watermelon = 20 lb": a new unit, when the name isn't one already. */
+    private fun parseUnitDef(line: String, m: MatchResult, scope: Scope): Parsed? {
+        val name = m.groupValues[2].trim()
+        if (isBuiltIn(name) || scope.varTrie.longest(Lexicon.keys(name), 0) != null || scope.funcTrie.longest(Lexicon.keys(name), 0) != null) return null
+        if (Tokenizer.lex(name, 0, env(scope)).tokens.any { it.type != T.UNIT || (it.v as UnitExpr).single?.id?.startsWith("custom:") != true }) return null
+        val rhsStart = m.groups[4]!!.range.first
+        val lexed = Tokenizer.lex(line.substring(rhsStart), rhsStart, env(scope))
+        if (lexed.tokens.isEmpty()) return null
+        val spans = ArrayList<Span>()
+        val one = line.indexOfFirst { !it.isWhitespace() }
+        spans += Span(one, (one until line.length).firstOrNull { line[it].isWhitespace() } ?: line.length, Style.NUMBER)
+        spans += Span(m.groups[2]!!.range.first, m.groups[2]!!.range.last + 1, Style.UNIT)
+        spans += Span(m.groups[3]!!.range.first, m.groups[3]!!.range.last + 1, Style.OPERATOR)
+        spans += lexed.spans
+        return Parsed(LineKind.EXPR, spans.sortedBy { it.start }, lexed.tokens, null, null, emptySet(), unitName = name)
+    }
+
+    /** A name Summa already knows: a unit, currency, function, keyword or number word. */
+    private fun isBuiltIn(name: String): Boolean {
+        val ci = Lexicon.keys(name)
+        val cs = Lexicon.keys(name, exact = true)
+        return Lexicon.ci.longest(ci, 0)?.first == ci.size || Lexicon.cs.longest(cs, 0)?.first == cs.size
+    }
+
+    private fun parse(line: String, scope: Scope): Parsed {
+        val varTrie = scope.varTrie
         val spans = ArrayList<Span>()
         val trimmed = line.trim()
         if (trimmed.isEmpty()) return Parsed(LineKind.EMPTY, spans, emptyList(), null, null, emptySet())
@@ -274,6 +448,10 @@ class SheetEngine(
         if (trimmed.length >= 3 && trimmed.all { it == '-' || it == '—' || it == '–' }) {
             spans += Span(0, line.length, Style.COMMENT)
             return Parsed(LineKind.DIVIDER, spans, emptyList(), null, null, emptySet())
+        }
+        if (!line.contains("//") && !line.contains(" # ")) {
+            FN_DEF.find(line)?.let { m -> parseFunction(line, m, scope)?.let { return it } }
+            UNIT_DEF.find(line)?.let { m -> parseUnitDef(line, m, scope)?.let { return it } }
         }
         // Blank out comments and quotes, keeping offsets.
         val chars = line.toCharArray()
@@ -326,7 +504,7 @@ class SheetEngine(
             }
         }
         val exprText = if (exprStart <= text.length) text.substring(exprStart) else ""
-        val lexed = Tokenizer.lex(exprText, exprStart, LexEnv(settings, varTrie))
+        val lexed = Tokenizer.lex(exprText, exprStart, env(scope))
         spans += lexed.spans
         var toks = lexed.tokens
         // Cut a trailing "= answer" someone typed after an expression ("2 + 2 = 4").

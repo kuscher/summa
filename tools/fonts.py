@@ -40,10 +40,19 @@ def fetch(key):
 
 
 def rename(font, family):
+    ps = family.replace(" ", "")
     for rec in font["name"].names:
         if rec.nameID in (1, 3, 4, 6, 16, 21):
-            ps = family.replace(" ", "")
             rec.string = ps if rec.nameID == 6 else (family if rec.nameID in (1, 16, 21) else family + " Variable")
+        elif rec.nameID == 25 or rec.nameID > 255:
+            # PostScript prefix and named-instance names ("GoogleSansFlex-Bold"): these end up in
+            # PDFs, so they get the new name too. Copyright, trademark and licence records stay.
+            text = rec.toUnicode()
+            for old in ("GoogleSansFlex", "GoogleSansCode"):
+                text = text.replace(old, ps)
+            for old in ("Google Sans Flex", "Google Sans Code"):
+                text = text.replace(old, family)
+            rec.string = text
 
 
 def build(src, out, family, pins):

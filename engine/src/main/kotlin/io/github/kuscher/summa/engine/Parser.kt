@@ -43,6 +43,12 @@ class Scaled(val factor: Rational, val x: Node) : Node()                     // 
 class Cond(val cond: Node, val then: Node, val otherwise: Node?) : Node()
 class Compare(val op: String, val a: Node, val b: Node) : Node()
 class TagStat(val kind: String, val tag: String) : Node()
+/**
+ * Money over time: "fv" ($10k at 5% for 10 years), "interest" (just the interest), "simple"
+ * (simple interest) and "loan" (the payment per period). [perYear] is the compounding or payment
+ * frequency (0 = continuously), or null for the default.
+ */
+class Finance(val kind: String, val principal: Node, val rate: Node, val term: Node, val perYear: Int?) : Node()
 
 sealed class Target
 class UnitT(val unit: UnitExpr) : Target()
@@ -116,6 +122,8 @@ class Parser(private val toks: List<Tok>, private val start: Int = 0, private va
             K.SQUARE, K.CUBIC -> 70
             K.PPI -> 70
             K.FROM -> if (left is PctLit) 25 else 0
+            K.FOR -> 7
+            K.INCL, K.EXCL -> 25
             "rounded", "rounded up", "rounded down" -> 40
             K.THEN, K.ELSE -> 0
             else -> 0
@@ -152,7 +160,14 @@ class Parser(private val toks: List<Tok>, private val start: Int = 0, private va
                 WithUnit(x, UnitExpr.of(Currencies.get(code)!!.unit))
             } else BareUnit(unitTail(UnitExpr.of(Currencies.get(code)!!.unit)))
         }
-        T.UNIT -> BareUnit(unitTail(t.v as UnitExpr))
+        T.UNIT -> {
+            val u = unitTail(t.v as UnitExpr)
+            // "workdays between Dec 1 and Dec 24", "days from today to Christmas"
+            if (u.dim == Dim.TIME && (isKw(peek(), K.BETWEEN) || isKw(peek(), K.FROM))) {
+                val range = kwNud(next())
+                if (range is RangeNode) Convert(range, UnitT(u)) else throw ParseError("between")
+            } else BareUnit(u)
+        }
         T.KW -> kwNud(t)
         T.VAR -> VarRef(t.v as String)
         T.LINEREF -> LineRef(t.v as Int)
@@ -237,7 +252,30 @@ class Parser(private val toks: List<Tok>, private val start: Int = 0, private va
             next()
             RangeNode(a, expr(21))
         }
+        K.LOAN, K.INTEREST, K.SIMPLE_INTEREST -> {
+            val inner = expr(0)
+            if (inner !is Finance) throw ParseError("${t.v} needs a rate and a term")
+            val kind = when (t.v) { K.LOAN -> "loan"; K.INTEREST -> "interest"; else -> "simple" }
+            Finance(kind, inner.principal, inner.rate, inner.term, inner.perYear)
+        }
         else -> throw ParseError("keyword ${t.v}")
+    }
+
+    private fun compounding(): Int? {
+        val t = peek() ?: return null
+        val id = (t.v as? String)?.takeIf { t.type == T.KW && it.startsWith(K.CMP) } ?: return null
+        next()
+        return id.removePrefix(K.CMP).toInt()
+    }
+
+    /** After "principal at rate": "for 10 years", optionally "compounded monthly" before or after. */
+    private fun financeTail(principal: Node, rate: Node): Node? {
+        var per = compounding()
+        if (!isKw(peek(), K.FOR)) return null
+        next()
+        val term = expr(8)
+        per = compounding() ?: per
+        return Finance("fv", principal, rate, term, per)
     }
 
     private fun aggNud(t: Tok): Node {
@@ -358,7 +396,10 @@ class Parser(private val toks: List<Tok>, private val start: Int = 0, private va
                 return if (left is WithUnit || left is BareUnit) Convert(left, UnitT(u)) else WithUnit(left, u)
             }
             T.PLACE -> return AtPlace(left, t.v as Place)
-            T.AT -> return AtNode(left, expr(8))
+            T.AT -> {
+                val b = expr(8)
+                return financeTail(left, b) ?: AtNode(left, b)
+            }
             T.EQ -> return Compare("==", left, expr(9))
             T.KW -> return kwLed(t, left)
             else -> {
@@ -419,6 +460,19 @@ class Parser(private val toks: List<Tok>, private val start: Int = 0, private va
         }
         K.PPI -> PpiLit(left)
         K.FROM -> PctApply("of", left, expr(25))
+        K.FOR -> {
+            // "$10,000 for 10 years at 5%"
+            var per = compounding()
+            val term = expr(8)
+            if (peek()?.type != T.AT) throw ParseError("for without at")
+            next()
+            val rate = expr(8)
+            per = compounding() ?: per
+            Finance("fv", left, rate, term, per)
+        }
+        // "€100 incl 20% VAT" adds the tax; "€120 without 20% VAT" takes an included tax out.
+        K.INCL -> PctApply("on", expr(25), left)
+        K.EXCL -> PctOfWhat("on", expr(25), left)
         "rounded", "rounded up", "rounded down" -> {
             val mode = when (t.v) { "rounded up" -> "up"; "rounded down" -> "down"; else -> "half" }
             // "rounded to nearest 10", "rounded up to nearest 5", or plain "rounded"

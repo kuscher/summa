@@ -219,4 +219,5 @@ private fun intRoot(x: BigInteger, n: Int): BigInteger? {
     return if (y.pow(n) == x) y else null
 }
 
-class EvalError(message: String) : Exception(message)
+/** No sensible answer. A [final] error (wrong number of values for a function) also stops the "last valid expression" fallback. */
+class EvalError(message: String, val final: Boolean = false) : Exception(message)

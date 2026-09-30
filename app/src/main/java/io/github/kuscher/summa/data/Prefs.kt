@@ -3,6 +3,7 @@ package io.github.kuscher.summa.data
 import android.content.Context
 import android.text.format.DateFormat
 import io.github.kuscher.summa.engine.EngineSettings
+import io.github.kuscher.summa.engine.Holidays
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,6 +37,8 @@ data class Settings(
     val sidebar: Boolean = true,
     /** The mini calculator asks to stay above other windows when it opens (Android 17 desktops). */
     val miniOnTop: Boolean = true,
+    /** Public holidays for workday maths: "auto" (the device's region), "none", or a country code. */
+    val holidays: String = "auto",
 )
 
 class Prefs(private val context: Context) {
@@ -62,6 +65,7 @@ class Prefs(private val context: Context) {
         firstRunDone = sp.getBoolean("firstRunDone", false),
         sidebar = sp.getBoolean("sidebar", true),
         miniOnTop = sp.getBoolean("miniOnTop", true),
+        holidays = sp.getString("holidays", "auto")!!,
     )
 
     fun update(f: (Settings) -> Settings) {
@@ -72,13 +76,20 @@ class Prefs(private val context: Context) {
             .putBoolean("thousands", s.thousands).putBoolean("degrees", s.degrees).putBoolean("mono", s.mono)
             .putBoolean("slashedZero", s.slashedZero).putBoolean("onlineRates", s.onlineRates).putBoolean("crypto", s.crypto)
             .putString("numberFormat", s.numberFormat).putString("dollar", s.dollar).putBoolean("firstRunDone", s.firstRunDone)
-            .putBoolean("sidebar", s.sidebar).putBoolean("miniOnTop", s.miniOnTop)
+            .putBoolean("sidebar", s.sidebar).putBoolean("miniOnTop", s.miniOnTop).putString("holidays", s.holidays)
             .apply()
         _state.value = s
     }
 
     fun getString(key: String): String? = sp.getString(key, null)
     fun putString(key: String, v: String?) = sp.edit().putString(key, v).apply()
+
+    /** The country whose public holidays workday maths skips ("" for none). */
+    fun holidayCountry(s: Settings = value): String = when (s.holidays) {
+        "none" -> ""
+        "auto" -> (context.resources.configuration.locales[0] ?: Locale.getDefault()).country.takeIf { Holidays.country(it) != null } ?: ""
+        else -> s.holidays
+    }
 
     /** The engine's view of these settings plus the device's locale, time zone and clock. */
     fun engineSettings(s: Settings = value): EngineSettings {
@@ -106,6 +117,7 @@ class Prefs(private val context: Context) {
             dayFirst = datePattern.indexOf('d') < datePattern.indexOf('M'),
             degrees = s.degrees, use24h = DateFormat.is24HourFormat(context),
             decimals = s.decimals, currencyAfter = currencyAfter, thousands = s.thousands,
+            holidays = holidayCountry(s),
         )
     }
 }

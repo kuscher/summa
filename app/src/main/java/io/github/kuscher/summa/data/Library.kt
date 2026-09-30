@@ -132,7 +132,7 @@ class Library(context: Context) {
     fun search(query: String): List<SheetMeta> {
         val words = query.lowercase().split(' ').filter { it.isNotBlank() }
         if (words.isEmpty()) return emptyList()
-        return _state.value.sheets.filter { it.trashedAt == null && it.id != SCRATCH }.filter { m ->
+        return _state.value.sheets.filter { it.trashedAt == null && !isSpecial(it.id) }.filter { m ->
             val hay = (m.title + "\n" + text(m.id)).lowercase()
             words.all { it in hay }
         }.sortedByDescending { it.updated }
@@ -149,8 +149,42 @@ class Library(context: Context) {
         return meta
     }
 
+    /**
+     * The definitions sheet: its variables, units and functions work in every sheet. A normal
+     * file (so it's backed up and exported like any sheet), shown apart from the sheet list.
+     */
+    fun definitions(): SheetMeta {
+        get(DEFINITIONS)?.let { return it }
+        val now = System.currentTimeMillis()
+        val meta = SheetMeta(DEFINITIONS, created = now, updated = now, title = "Definitions")
+        atomicWrite(file(DEFINITIONS), DEFINITIONS_START)
+        edit { it.copy(sheets = it.sheets + meta) }
+        return meta
+    }
+
     companion object {
         const val SCRATCH = "scratch"
+        const val DEFINITIONS = "definitions"
+
+        /** Sheets that live outside the sheet list. */
+        fun isSpecial(id: String) = id == SCRATCH || id == DEFINITIONS
+
+        val DEFINITIONS_START = """
+            # Definitions
+            // Everything here works in every sheet. Some ideas:
+
+            // Variables
+            vat = 20%
+            hourly = $85/hour
+
+            // Your own units
+            1 coffee = $4.50
+            1 sprint = 2 weeks
+
+            // Functions
+            tip(bill) = bill × 18%
+            bmi(weight, height) = weight / height²
+        """.trimIndent() + "\n"
 
         fun titleOf(text: String): String {
             val first = text.lineSequence().map { it.trim() }.firstOrNull { it.isNotEmpty() } ?: return ""

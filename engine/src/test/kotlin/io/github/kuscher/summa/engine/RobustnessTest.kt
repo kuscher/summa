@@ -19,7 +19,7 @@ class RobustnessTest {
     }
 
     @Test fun thousandLinesAreFast() {
-        val lines = (1..1000).map { i ->
+        val lines = (1..2000).map { i ->
             when (i % 5) {
                 0 -> "sum"
                 1 -> "Item $i: \$${i}.50 × 3"
@@ -36,7 +36,8 @@ class RobustnessTest {
         val t1 = System.nanoTime()
         engine.evaluate(edited, CorpusTest.NOW)
         val oneEdit = (System.nanoTime() - t1) / 1e6
-        println("1000 lines: cached ${"%.1f".format(warm)} ms, after one edit ${"%.1f".format(oneEdit)} ms")
+        println("2000 lines: cached ${"%.1f".format(warm)} ms, after one edit ${"%.1f".format(oneEdit)} ms")
         assertTrue("too slow: $warm ms", warm < 400)
+        assertTrue("too slow after an edit: $oneEdit ms", oneEdit < 400)
     }
 }

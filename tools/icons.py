@@ -30,10 +30,11 @@ straighten swap_horiz sync tag text_fields tune undo visibility public travel_ex
 shopping_cart restaurant receipt_long construction science school fitness_center pets payments bar_chart
 contrast format_quote short_text title data_object percent north_east south_west auto_awesome waving_hand
 rocket_launch speed timer event calendar_month straighten square_foot thermostat scale water_drop
+print table_view picture_as_pdf code account_balance
 """.split()
 
 # Symbols also exported as vector drawables (tiles, notifications, launcher icon), from the filled font.
-DRAWABLES = ["calculate", "add", "picture_in_picture_alt", "content_copy", "description"]
+DRAWABLES = ["add", "picture_in_picture_alt"]
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CACHE = pathlib.Path(os.environ.get("SUMMA_CACHE", pathlib.Path.home() / ".cache/summa"))

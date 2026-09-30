@@ -71,6 +71,11 @@ class UnitDef(
     val category: String = "",
     /** A US-customary unit (answers from US inputs stay US where possible). */
     val imperial: Boolean = false,
+    /**
+     * For units the user defined in terms of sheet-dependent ones ("1 coffee = $4.50"):
+     * one of this is [factor] × [via], resolved when used (so rates stay live).
+     */
+    val via: UnitExpr? = null,
 ) {
     override fun toString() = id
     override fun equals(other: Any?) = other is UnitDef && other.id == id

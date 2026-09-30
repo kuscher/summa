@@ -44,6 +44,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -75,6 +76,8 @@ fun iconFor(title: String): String {
         has("school", "study", "homework") -> Sym.SCHOOL
         has("run", "gym", "fitness", "training", "pace") -> Sym.FITNESS_CENTER
         has("welcome", "tour", "hello") -> Sym.WAVING_HAND
+        has("definitions") -> Sym.FUNCTION
+        has("loan", "mortgage", "interest", "bank") -> Sym.ACCOUNT_BALANCE
         has("time", "zone", "schedule") -> Sym.SCHEDULE
         else -> Sym.DESCRIPTION
     }
@@ -127,7 +130,7 @@ fun Sidebar(
     var sel by remember { mutableStateOf<SideSel>(SideSel.Sheets) }
     var newFolder by remember { mutableStateOf(false) }
     val q = search.text.toString()
-    val live = index.sheets.filter { it.trashedAt == null && it.id != Library.SCRATCH }
+    val live = index.sheets.filter { it.trashedAt == null && !Library.isSpecial(it.id) }
     Column(modifier.fillMaxHeight().background(if (compact) scheme.surface else scheme.surfaceContainerLow).padding(horizontal = 12.dp)) {
         Spacer(Modifier.height(10.dp))
         SearchField(search, focus = searchFocus)
@@ -178,6 +181,8 @@ fun Sidebar(
                         FolderRow(f.id, f.name, count, folderSel == f.id, library) { sel = if (folderSel == f.id) SideSel.Sheets else SideSel.Folder(f.id) }
                     }
                     item { NavRow(Sym.CREATE_NEW_FOLDER, "New folder", false) { newFolder = true } }
+                    item { SectionLabel("Everywhere") }
+                    item { NavRow(Sym.FUNCTION, "Definitions", current == Library.DEFINITIONS) { onOpen(library.definitions().id) } }
                     val trashCount = index.sheets.count { it.trashedAt != null }
                     item { NavRow(Sym.DELETE, "Trash", false, trailing = if (trashCount > 0) "$trashCount" else null) { sel = SideSel.Trash } }
                 }
@@ -257,7 +262,8 @@ fun SheetRow(
             Modifier.fillMaxWidth().height(44.dp).clip(CircleShape)
                 .background(if (selected) scheme.secondaryContainer else scheme.surface.copy(alpha = 0f))
                 .onSecondaryClick { menu = true }
-                .clickable { onOpen(m.id) }
+                .clickable(onClickLabel = "Open") { onOpen(m.id) }
+                .semantics { customActions = listOf(androidx.compose.ui.semantics.CustomAccessibilityAction("Sheet options") { menu = true; true }) }
                 .padding(start = 12.dp, end = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

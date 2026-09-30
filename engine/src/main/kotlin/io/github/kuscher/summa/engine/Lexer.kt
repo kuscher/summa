@@ -26,6 +26,8 @@ data class EngineSettings(
     /** Money as "12,00 €" instead of "€12.00". */
     val currencyAfter: Boolean = false,
     val thousands: Boolean = true,
+    /** Public holidays that workday maths skips: a country code from [Holidays], or "" for none. */
+    val holidays: String = "",
 )
 
 enum class T {
@@ -67,6 +69,11 @@ object K {
     const val TIME = "time"; const val IF = "if"; const val THEN = "then"; const val ELSE = "else"
     const val MULTIPLIED_BY = "multiplied by"; const val DIVIDED_BY = "divided by"; const val REMAINDER = "remainder of"
     const val PPI = "ppi"
+    // Finance and tax (only in lines that look like finance; see Tokenizer.accept).
+    const val FOR = "for"; const val LOAN = "loan"; const val INTEREST = "interest"; const val SIMPLE_INTEREST = "simple interest"
+    const val INCL = "incl"; const val EXCL = "excl"
+    /** Compounding keywords carry "cmp:N" (N periods a year, 0 = continuously). */
+    const val CMP = "cmp:"
 }
 
 /** A trie over token texts for multi-word phrases ("fluid ounces", "as a % of", "New York"). */
@@ -202,6 +209,18 @@ object Lexicon {
         kw(K.THEN, "then")
         kw(K.ELSE, "else", "otherwise")
         kw(K.PPI, "ppi", "dpi")
+        kw(K.FOR, "for")
+        kw(K.LOAN, "loan", "loan of", "a loan of", "mortgage", "mortgage of", "a mortgage of", "payment on", "payments on",
+            "monthly payment on", "monthly payments on", "monthly payment for", "payment for", "repayment on", "repayments on",
+            "loan payment on", "loan payment for", "mortgage payment on", "mortgage payment for", "monthly repayment on")
+        kw(K.INTEREST, "interest on", "interest earned on", "compound interest on", "interest", "compound interest", "interest from")
+        kw(K.SIMPLE_INTEREST, "simple interest on", "simple interest")
+        kw(K.INCL, "incl", "incl.", "including", "inc", "inc.", "with")
+        kw(K.EXCL, "excl", "excl.", "excluding", "ex", "ex.", "without", "net of")
+        for ((n, words) in listOf(1 to listOf("annually", "yearly"), 2 to listOf("semiannually", "semi-annually", "half-yearly", "biannually"),
+                4 to listOf("quarterly"), 12 to listOf("monthly"), 52 to listOf("weekly"), 365 to listOf("daily"), 0 to listOf("continuously"))) {
+            for (w in words) kw(K.CMP + n, "compounded $w", "compounding $w", "$w compounding", "compound $w", "paid $w", "$w payments", "repaid $w")
+        }
 
         fn("sqrt", "sqrt", "√")
         fn("cbrt", "cbrt", "∛")
@@ -229,6 +248,9 @@ object Lexicon {
         fn("fromunix", "fromunix", "unixtime", "from unix", "fromtimestamp")
         fn("sign", "sign", "sgn")
         fn("choose", "choose", "ncr")
+        fn("npr", "npr", "permutations", "perm")
+        fn("sec", "secant"); fn("csc", "csc", "cosec", "cosecant"); fn("cot", "cot", "cotan", "cotangent")
+        fn("asinh", "asinh", "arsinh", "arcsinh"); fn("acosh", "acosh", "arcosh", "arccosh"); fn("atanh", "atanh", "artanh", "arctanh")
 
         agg("sum", "sum", "total", "subtotal", "sum total", "grand total")
         agg("avg", "average", "avg", "mean")
@@ -292,6 +314,8 @@ object Lexicon {
         )) for (n in names) ci.put(keys(n), { Tok(T.NOW, 0, 0, it, id) })
         for (w in listOf("week number", "week of year", "week of the year", "calendar week", "kw")) ci.put(keys(w), { Tok(T.NOW, 0, 0, it, "week number") })
         for (w in listOf("day of year", "day of the year")) ci.put(keys(w), { Tok(T.NOW, 0, 0, it, "day of year") })
+        for (w in listOf("next holiday", "next public holiday", "next bank holiday", "next stat holiday", "next statutory holiday"))
+            ci.put(keys(w), { Tok(T.NOW, 0, 0, it, "next holiday") })
     }
 
     val MONTHS: Map<String, Month> = buildMap {

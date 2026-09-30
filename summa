@@ -6,11 +6,14 @@
 #   ./summa test                engine tests on this machine (JUnit, no device)
 #   ./summa app                 build, install and launch
 #   ./summa install | launch | stop | uninstall
-#   ./summa debug CMD...        test hooks (DebugReceiver.kt): list, open ID, new, text B64, cursor A [B],
-#                               dump, shot NAME, screen sheet|settings, pref KEY VALUE
+#   ./summa debug CMD...        test hooks (DebugReceiver.kt): list, open ID|definitions, new, text B64, type TEXT,
+#                               cursor A [B], dump, shot NAME, screen sheet|settings, pref KEY VALUE,
+#                               export pdf|html|csv, print, defs, holidays auto|none|CC
 #   ./summa sheet FILE          replace the open sheet's text with FILE (or - for stdin)
 #   ./summa shot [NAME] [OUT]   a PNG of Summa's own window (PixelCopy: no other apps, no pointer)
+#   ./summa pull FILE [OUT]     copy a file from the app's cache dir (debug export writes export.pdf/html/csv)
 #   ./summa logs [N]            Summa's log lines
+#   ./summa sh CMD...           adb shell on the device (e.g. dumpsys gfxinfo io.github.kuscher.summa)
 #   ./summa idle                seconds since the last user input on the device, and the focused window
 #
 # adb's server listens on a Unix socket (VSCodeBook's), never tcp:5037: the Linux terminal
@@ -65,7 +68,11 @@ case "$cmd" in
     A logcat -c; path=$(WAIT=1.2 dbg shot "$name")
     u=$(A shell am get-current-user | tr -d '\r')
     A exec-out run-as "$PKG" --user "$u" cat "cache/$name.png" > "$out" && echo "$out" ;;
+  pull)  # pull a file from Summa's cache dir (debug builds): ./summa pull export.pdf [OUT]
+    u=$(A shell am get-current-user | tr -d '\r'); out=${2:-$TMP/summa-$1}
+    A exec-out run-as "$PKG" --user "$u" cat "cache/$1" > "$out" && echo "$out" ;;
   logs) A shell "logcat -d -s Summa:I AndroidRuntime:E" | tail -n "${1:-40}" ;;
+  sh) A shell "$@" ;;
   idle)
     A shell dumpsys power | grep -E "lastUserActivityTime=|mWakefulness=" | head -2
     A shell "dumpsys window | grep -E 'mCurrentFocus' | head -1" ;;

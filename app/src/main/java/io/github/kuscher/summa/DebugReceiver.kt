@@ -20,6 +20,7 @@ import java.io.FileOutputStream
  * Test hooks for driving Summa from adb (`./summa debug …`). The receiver requires the DUMP
  * permission, which only the shell (adb) holds, so other apps can't use it.
  *   list | open ID | new | text BASE64 | cursor N | dump | shot [NAME] | screen sheet|settings | pref KEY VALUE
+ *   export pdf|html|csv (writes cache/export.EXT) | defs (the definitions sheet's names)
  */
 class DebugReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -32,7 +33,7 @@ class DebugReceiver : BroadcastReceiver() {
         fun out(s: String) { Log.i(TAG, "debug ${parts[0]} -> $s") }
         when (parts[0]) {
             "list" -> out(app.library.state.value.sheets.joinToString(" | ") { "${it.id}:${it.title}${if (it.trashedAt != null) " (trash)" else ""}" })
-            "open" -> main.post { DebugHooks.open(arg); out("ok") }
+            "open" -> main.post { if (arg == "definitions") app.library.definitions(); DebugHooks.open(arg); out("ok") }
             "new" -> main.post { DebugHooks.newSheet(); out("ok") }
             "delete" -> { app.library.deleteForever(arg); out("ok") }
             "screen" -> main.post { DebugHooks.screen(arg); out("ok") }
@@ -45,6 +46,12 @@ class DebugReceiver : BroadcastReceiver() {
                 s.state.setTextAndPlaceCursorAtEnd(String(Base64.decode(arg, Base64.DEFAULT), Charsets.UTF_8))
                 out("ok")
             }
+            "type" -> main.post {
+                // Types into Summa's own text state (like a keystroke, without injecting input).
+                val s = act?.session ?: return@post out("no session")
+                s.state.edit { val at = selection.max; replace(selection.min, at, arg); selection = TextRange(selection.min + arg.length) }
+                out("ok")
+            }
             "cursor" -> main.post {
                 val s = act?.session ?: return@post out("no session")
                 val (a, b) = arg.split(' ').map { it.toInt() }.let { it[0] to (it.getOrNull(1) ?: it[0]) }
@@ -54,7 +61,7 @@ class DebugReceiver : BroadcastReceiver() {
             "dump" -> main.post {
                 val ev = act?.session?.evaluated ?: return@post out("no result")
                 ev.result.lines.forEachIndexed { i, l -> Log.i(TAG, "line ${i + 1}: ${l.answer ?: "∅"}${l.error?.let { "  ($it)" } ?: ""}") }
-                out("${ev.result.lines.size} lines")
+                out("${ev.result.lines.size} lines, evaluated in ${"%.1f".format(act.session?.lastEvalMs ?: 0.0)} ms")
             }
             "pref" -> {
                 val (k, v) = arg.split(' ', limit = 2).let { it[0] to it.getOrElse(1) { "" } }
@@ -81,6 +88,24 @@ class DebugReceiver : BroadcastReceiver() {
                     out(f.absolutePath)
                 }, main)
             }
+            "export" -> main.post {
+                val s = act?.session ?: return@post out("no session")
+                val snap = io.github.kuscher.summa.ui.SheetSnapshot.of(s)
+                val f = File(context.cacheDir, "export.$arg")
+                when (arg) {
+                    "pdf" -> FileOutputStream(f).use { io.github.kuscher.summa.ui.Export.pdf(context, snap, it, 595, 842) }
+                    "html" -> f.writeText(io.github.kuscher.summa.ui.Export.html(context, snap))
+                    "csv" -> f.writeText(io.github.kuscher.summa.ui.Export.csv(snap))
+                }
+                out(f.absolutePath)
+            }
+            "print" -> main.post {
+                val a = act ?: return@post out("no activity")
+                val s = a.session ?: return@post out("no session")
+                io.github.kuscher.summa.ui.Export.print(a, io.github.kuscher.summa.ui.SheetSnapshot.of(s)); out("ok")
+            }
+            "defs" -> { val d = app.definitions.value; out("vars=${d.vars.keys} units=${d.units.map { it.names }} fns=${d.functions.keys}") }
+            "holidays" -> { app.prefs.update { it.copy(holidays = arg) }; out(app.prefs.holidayCountry()) }
             else -> out("unknown")
         }
     }

@@ -48,7 +48,7 @@ class CalculateActivity : ComponentActivity() {
         val app = SummaApp.instance
         val text = intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.toString().orEmpty().trim()
         val readOnly = intent.getBooleanExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, true)
-        val engine = SheetEngine(app.prefs.engineSettings(), app.rates.rates.value)
+        val engine = SheetEngine(app.prefs.engineSettings(), app.rates.rates.value).also { it.definitions = app.definitions.value }
         val result = engine.evaluate(text)
         val lines = text.split('\n')
         val answers = result.lines.map { it.answer }

@@ -112,7 +112,7 @@ private fun RowScope.Key(modifier: Modifier, op: Boolean = false, label: String,
     val fg = if (op) scheme.onSecondaryContainer else scheme.onSurface
     Box(
         modifier.height(54.dp).scale(scale).clip(RoundedCornerShape(corner)).background(bg)
-            .clickable(interaction, indication = null) { view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); onClick() }
+            .clickable(interaction, indication = null, role = androidx.compose.ui.semantics.Role.Button) { view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); onClick() }
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) { androidx.compose.runtime.CompositionLocalProvider(androidx.compose.material3.LocalContentColor provides fg) { content() } }
@@ -137,7 +137,7 @@ private fun RowScope.ReturnKey(modifier: Modifier, onClick: () -> Unit) {
                 Modifier.height(54.dp).fillMaxWidth(0.72f)
                     .graphicsLayer { rotationZ = rotate }
                     .clip(cookie).background(if (pressed) scheme.primary else scheme.primaryContainer)
-                    .clickable(interaction, indication = null) { view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); onClick() }
+                    .clickable(interaction, indication = null, role = androidx.compose.ui.semantics.Role.Button) { view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); onClick() }
                     .semantics { contentDescription = "New line" },
             )
             SymIcon(Sym.KEYBOARD_RETURN, size = 24.sp, tint = if (pressed) scheme.onPrimary else scheme.onPrimaryContainer)

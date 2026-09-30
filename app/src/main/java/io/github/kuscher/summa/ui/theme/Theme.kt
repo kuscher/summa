@@ -61,7 +61,8 @@ val LocalSummaColors = staticCompositionLocalOf<SummaColors> { error("no theme")
 
 fun summaColors(c: ColorScheme) = SummaColors(
     number = c.onSurface, unit = c.tertiary, variable = c.primary, keyword = c.onSurfaceVariant,
-    function = c.secondary, label = c.onSurfaceVariant, comment = c.outline, heading = c.onSurface,
+    // Comments sit a little darker than the outline tone so they keep 4.5:1 contrast (WCAG AA).
+    function = c.secondary, label = c.onSurfaceVariant, comment = androidx.compose.ui.graphics.lerp(c.outline, c.onSurfaceVariant, 0.4f), heading = c.onSurface,
     reference = c.onSecondaryContainer, referenceBg = c.secondaryContainer, date = c.tertiary,
     rail = c.surfaceContainerLow, activeLine = c.primaryContainer.copy(alpha = 0.16f), answer = c.onSurface,
 )

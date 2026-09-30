@@ -56,6 +56,9 @@ object Completions {
             "until" to "days until a date", "since" to "time since a date", "hex" to "as hexadecimal", "binary" to "as binary",
             "fraction" to "as a fraction", "percent" to "%", "rounded" to "round the answer", "nearest" to "round to nearest",
             "next" to "next friday, next week…", "median" to "middle value", "count" to "how many lines",
+            "loan" to "loan of $300k at 6% for 30 years", "mortgage" to "monthly payment", "interest" to "interest on $5k at 4% for 3 years",
+            "compounded monthly" to "compounding", "workdays" to "workdays until…, workdays between…", "including" to "incl 20% VAT",
+            "excluding" to "without 20% VAT", "next holiday" to "next public holiday",
         )
         for ((i, p) in fns.withIndex()) out += Entry(p.first, Completion(p.first, p.second, Completion.Kind.FUNCTION), 100 + i, "f:" + p.first)
         return out.sortedWith(compareBy<Entry> { it.rank }.thenBy { it.key.length })
@@ -72,13 +75,22 @@ object Completions {
      * Suggestions for [prefix] (the word before the cursor). [afterNumber] favours units and
      * currencies ("5 k" → km, kg). Returns at most [limit], never the prefix itself.
      */
-    fun suggest(prefix: String, vars: Collection<String> = emptyList(), afterNumber: Boolean = false, limit: Int = 6): List<Completion> {
+    fun suggest(
+        prefix: String, vars: Collection<String> = emptyList(), afterNumber: Boolean = false, limit: Int = 6,
+        defs: Definitions = Definitions.EMPTY,
+    ): List<Completion> {
         if (prefix.isEmpty()) return emptyList()
         val lower = prefix.lowercase()
         val out = ArrayList<Completion>()
         val seen = HashSet<String>()
         fun add(c: Completion) { if (c.insert != prefix && seen.add(c.insert.lowercase() + c.kind)) out += c }
         for (v in vars.sortedBy { it.length }) if (v.lowercase().startsWith(lower) && v.length > prefix.length) add(Completion(v, "variable", Completion.Kind.VARIABLE))
+        // Your own units and functions (this sheet's and the definitions sheet's).
+        for (u in defs.units) u.names.firstOrNull { it.lowercase().startsWith(lower) && it.length > prefix.length }?.let {
+            add(Completion(if (afterNumber) u.names.last() else it, "your unit", Completion.Kind.UNIT))
+        }
+        for (f in defs.functions.values) if (f.name.lowercase().startsWith(lower) && f.name.length > prefix.length)
+            add(Completion(f.name + "(", "your function (${f.params.joinToString(", ")})", Completion.Kind.FUNCTION))
         val pool = entries.filter { e ->
             val exactCase = e.c.kind == Completion.Kind.UNIT && e.key.length <= 3
             (if (exactCase) e.key.startsWith(prefix) || (prefix.length >= 2 && e.key.lowercase().startsWith(lower)) else e.key.lowercase().startsWith(lower)) &&

@@ -21,13 +21,17 @@ class EvalCtx(
     val tagStat: (String, String) -> Value? = { _, _ -> null },
     private val ppiOverride: Rational? = null,
     private val pairRates: Map<Pair<String, String>, Rational> = emptyMap(),
+    /** Functions the user defined, by name. */
+    val functions: Map<String, UserFn> = emptyMap(),
+    /** How deep in user function calls we are (stops runaway recursion). */
+    val depth: Int = 0,
 ) : FactorResolver {
     var timeDependent = false
     var rateDependent = false
     val referencedLines = HashSet<Int>()
 
-    fun with(ppi: Rational? = ppiOverride, pair: Map<Pair<String, String>, Rational> = pairRates) =
-        EvalCtx(settings, rates, now, vars, lines, prev, aggregate, tagStat, ppi, pair).also { it.parent = this }
+    fun with(ppi: Rational? = ppiOverride, pair: Map<Pair<String, String>, Rational> = pairRates, vars: Map<String, Value> = this.vars, depth: Int = this.depth) =
+        EvalCtx(settings, rates, now, vars, lines, prev, aggregate, tagStat, ppi, pair, functions, depth).also { it.parent = this }
 
     private var parent: EvalCtx? = null
     private fun flagRate() { rateDependent = true; parent?.flagRate() }
@@ -48,7 +52,7 @@ class EvalCtx(
         return Rational.of(16)
     }
 
-    override fun factor(u: UnitDef): Rational? = when (u.kind) {
+    override fun factor(u: UnitDef): Rational? = if (u.via != null) u.via.factor(this)?.let { it * u.factor } else when (u.kind) {
         UnitKind.CURRENCY -> { flagRate(); rates.eurPer(u.id) }
         UnitKind.PIXEL -> Rational.parse("0.0254") / ppi
         UnitKind.EM -> Rational.parse("0.0254") / ppi * emPx
@@ -114,6 +118,7 @@ class Evaluator(private val ctx: EvalCtx) {
             if (c.v) eval(n.then) else n.otherwise?.let { eval(it) } ?: throw EvalError("no else")
         }
         is Compare -> Bool(compareValues(eval(n.a), eval(n.b)) == 0)
+        is Finance -> finance(n)
     }
 
     // ------------------------------------------------------------------ arithmetic
@@ -192,7 +197,7 @@ class Evaluator(private val ctx: EvalCtx) {
         if (a.unit == b.unit) return Qty(a.num + b.num, a.unit)
         if (a.unit.dim != b.unit.dim) throw EvalError("incompatible units")
         // Money: the last currency wins. Other units: the larger unit wins.
-        val target = if (a.unit.hasCurrency) b.unit else {
+        val target = if (a.unit.hasCurrency || b.unit.hasCurrency) (if (b.unit.hasCurrency) b.unit else a.unit) else {
             val fa = a.unit.factor(ctx) ?: throw EvalError("unit")
             val fb = b.unit.factor(ctx) ?: throw EvalError("unit")
             if (fa >= fb) a.unit else b.unit
@@ -338,7 +343,11 @@ class Evaluator(private val ctx: EvalCtx) {
     // ------------------------------------------------------------------ conversion
 
     fun convertQty(q: Qty, target: UnitExpr): Qty {
-        if (q.isPlain) return Qty(q.num, target)
+        if (q.isPlain) {
+            // "288 in gross" (1 gross = 144): a plain number into a counting unit.
+            if (!target.isNone && target.dim.isNone) target.factor(ctx)?.takeIf { !it.isZero }?.let { return Qty(q.num / Num.of(it), target) }
+            return Qty(q.num, target)
+        }
         if (target.isNone) return Qty(q.num * Num.of(q.unit.factor(ctx) ?: throw EvalError("unit")))
         if (q.unit == target) return q
         val sd = q.unit.dim
@@ -377,7 +386,12 @@ class Evaluator(private val ctx: EvalCtx) {
             is UnitT -> when (v) {
                 // Asked-for units show as written: "90 min in hours" is 1.5 h, not 1 h 30 min.
                 is Qty -> convertQty(v, t.unit).let { if (t.unit.dim == Dim.TIME) Shown(it, Fmt(FmtKind.UNIT)) else it }
-                is Range -> convertQty(rangeDiff(v) as? Qty ?: throw EvalError("range"), t.unit)
+                is Range -> {
+                    val a = unwrap(v.from); val b = unwrap(v.to)
+                    // Like a spreadsheet's NETWORKDAYS, both ends count.
+                    if (a is Moment && b is Moment && t.unit.single?.id == "workday") Qty(Num.of(workdaysBetween(a.date.minusDays(1), b.date)), t.unit)
+                    else convertQty(rangeDiff(v) as? Qty ?: throw EvalError("range"), t.unit).let { if (t.unit.dim == Dim.TIME) Shown(it, Fmt(FmtKind.UNIT)) else it }
+                }
                 is Moment -> throw EvalError("a time isn't a unit")
                 is Mult -> throw EvalError("multiplier")
                 else -> throw EvalError("convert")
@@ -541,6 +555,8 @@ class Evaluator(private val ctx: EvalCtx) {
     private fun juxt(n: Juxt): Value {
         val a = unwrap(eval(n.a))
         val b = unwrap(eval(n.b))
+        // "19% VAT" where vat = 20%: the name labels the rate that was written, it doesn't multiply it.
+        if (a is Pct && b is Pct && n.b is VarRef) return a
         if (a is Qty && b is Qty) {
             // "1 m 20 cm", "3 h 20 min", "5 ft 11 in": a sum of like quantities.
             if (!a.isPlain && !b.isPlain && a.unit.dim == b.unit.dim) return addQty(a, b)
@@ -624,6 +640,7 @@ class Evaluator(private val ctx: EvalCtx) {
 
     private fun call(fn: String, argNodes: List<Node>): Value {
         val args = argNodes.map { eval(it) }
+        ctx.functions[fn]?.let { f -> return callUser(f, args) }
         fun one(): Value = args.firstOrNull()?.let { unwrap(it) } ?: throw EvalError("$fn needs a value")
         fun unitOf(v: Value) = (v as? Qty)?.unit ?: UnitExpr.NONE
         return when (fn) {
@@ -688,6 +705,21 @@ class Evaluator(private val ctx: EvalCtx) {
                 while (i < k) { r = r * (n - i) / (i + BigInteger.ONE); i += BigInteger.ONE }
                 Qty(Num.of(Rational.of(r)))
             }
+            "npr" -> {
+                val n = plainArg(args.getOrNull(0) ?: throw EvalError("npr")).exact?.takeIf { it.isInteger && it.signum >= 0 }?.num ?: throw EvalError("npr")
+                val k = plainArg(args.getOrNull(1) ?: throw EvalError("npr")).exact?.takeIf { it.isInteger && it.signum >= 0 }?.num ?: throw EvalError("npr")
+                if (k > n || k > BigInteger.valueOf(3000)) throw EvalError("npr")
+                var r = BigInteger.ONE
+                var i = BigInteger.ZERO
+                while (i < k) { r *= (n - i); i += BigInteger.ONE }
+                Qty(Num.of(Rational.of(r)))
+            }
+            "sec" -> Qty(Num.approx(1 / cleanTrig(Math.cos(angleArg(one()))).also { if (it == 0.0) throw EvalError("undefined") }))
+            "csc" -> Qty(Num.approx(1 / cleanTrig(Math.sin(angleArg(one()))).also { if (it == 0.0) throw EvalError("undefined") }))
+            "cot" -> Qty(Num.approx(cleanTrig(1 / Math.tan(angleArg(one())))))
+            "asinh" -> plainArg(one()).double.let { x -> Qty(Num.approx(Math.log(x + Math.sqrt(x * x + 1)))) }
+            "acosh" -> plainArg(one()).double.let { x -> if (x < 1) throw EvalError("acosh") else Qty(Num.approx(Math.log(x + Math.sqrt(x * x - 1)))) }
+            "atanh" -> plainArg(one()).double.let { x -> if (kotlin.math.abs(x) >= 1) throw EvalError("atanh") else Qty(Num.approx(0.5 * Math.log((1 + x) / (1 - x)))) }
             "fromunix" -> {
                 val s = plainArg(one()).double
                 val secs = if (s > 1e11) s / 1000 else s
@@ -695,6 +727,73 @@ class Evaluator(private val ctx: EvalCtx) {
             }
             "min", "max", "avg", "sum", "median", "count", "stddev" -> listStat(fn, args)
             else -> throw EvalError("unknown function $fn").also { unitOf(one()) }
+        }
+    }
+
+    private fun callUser(f: UserFn, args: List<Value>): Value {
+        if (args.size != f.params.size) throw EvalError("${f.name} takes ${f.params.size} value${if (f.params.size == 1) "" else "s"}", final = true)
+        if (ctx.depth >= 48) throw EvalError("too deep", final = true)
+        val node = try { Parser(f.body).parseAll() } catch (e: ParseError) { throw EvalError("can't read ${f.name}") }
+        val vars = HashMap(ctx.vars)
+        for ((p, a) in f.params.zip(args)) vars[p] = unwrap(a)
+        return Evaluator(ctx.with(vars = vars, depth = ctx.depth + 1)).eval(node)
+    }
+
+    // ------------------------------------------------------------------ finance
+
+    private val year get() = UnitExpr.of(UnitCatalog.byId("year"))
+
+    /** The rate as a fraction and the period it's quoted for, in years: "5%" → (0.05, 1), "0.5% a month" → (0.005, 1/12). */
+    private fun rateOf(n: Node): Pair<Num, Num> {
+        if (n is Bin && n.op == "/" && n.b is BareUnit && n.b.unit.dim == Dim.TIME) {
+            val p = unwrap(eval(n.a)) as? Pct ?: throw EvalError("a rate is a percentage")
+            return p.num / Num.of(100) to convertQty(Qty(Num.ONE, n.b.unit), year).num
+        }
+        val v = unwrap(eval(n)) as? Pct ?: throw EvalError("a rate is a percentage")
+        return v.num / Num.of(100) to Num.ONE
+    }
+
+    private fun bigPow(x: java.math.BigDecimal, n: Num): Num {
+        val e = n.exact
+        if (e != null && e.isInteger && e.num.bitLength() < 31) {
+            val k = e.num.toInt()
+            val mc = java.math.MathContext(40)
+            val r = if (k >= 0) x.pow(k, mc) else java.math.BigDecimal.ONE.divide(x.pow(-k, mc), mc)
+            return Num.of(Rational.of(r))
+        }
+        return Num.approx(Math.pow(x.toDouble(), n.double))
+    }
+
+    private fun finance(n: Finance): Value {
+        val p = unwrap(eval(n.principal)) as? Qty ?: throw EvalError("an amount")
+        val (rate, period) = rateOf(n.rate)
+        val termQ = unwrap(eval(n.term)) as? Qty ?: throw EvalError("a term")
+        if (termQ.unit.dim != Dim.TIME) throw EvalError("a term in years or months")
+        val years = convertQty(termQ, year).num
+        if (years.signum <= 0) throw EvalError("a term")
+        val annual = rate / period
+        return when (n.kind) {
+            "simple" -> Qty(p.num * annual * years, p.unit)
+            "loan" -> {
+                val m = n.perYear?.takeIf { it > 0 } ?: 12
+                val i = annual / Num.of(m)
+                val count = years * Num.of(m)
+                val pmt = if (i.isZero) p.num / count else {
+                    val grow = bigPow(java.math.BigDecimal.ONE + i.toBigDecimal(), -count)
+                    p.num * i / (Num.ONE - grow)
+                }
+                // Paid twice a year reads as the yearly amount.
+                val (per, times) = when (m) { 1 -> "year" to 1; 2 -> "year" to 2; 4 -> "quarter" to 1; 52 -> "week" to 1; 365 -> "day" to 1; else -> "month" to 1 }
+                Qty(pmt * Num.of(times), p.unit / UnitExpr.of(UnitCatalog.byId(per)))
+            }
+            else -> {
+                // Compounded at the rate's own period unless the line says otherwise.
+                val m = n.perYear ?: (Num.ONE / period).exact?.takeIf { it.isInteger && it.num.bitLength() < 16 }?.num?.toInt() ?: 1
+                val growth = if (m == 0) Num.approx(Math.exp(annual.double * years.double))
+                    else bigPow(java.math.BigDecimal.ONE + (annual / Num.of(m)).toBigDecimal(), years * Num.of(m))
+                val fv = p.num * growth
+                Qty(if (n.kind == "interest") fv - p.num else fv, p.unit)
+            }
         }
     }
 
@@ -747,6 +846,10 @@ class Evaluator(private val ctx: EvalCtx) {
             "day before yesterday" -> Moment(midday(d.minusDays(2)), hasDate = true, hasTime = false)
             "week number" -> return0(Qty(Num.of(d.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR).toLong())))
             "day of year" -> return0(Qty(Num.of(d.dayOfYear.toLong())))
+            "next holiday" -> {
+                val (date, _) = Holidays.next(st.holidays, d) ?: throw EvalError("choose your holidays in Settings")
+                Moment(midday(date), hasDate = true, hasTime = false)
+            }
             in HOLIDAYS -> {
                 // The next one, counting today.
                 var y = d.year
@@ -783,14 +886,7 @@ class Evaluator(private val ctx: EvalCtx) {
         else -> throw EvalError(w)
     }
 
-    /** Easter Sunday (Gregorian computus, "Anonymous" algorithm). */
-    private fun easter(y: Int): LocalDate {
-        val a = y % 19; val b = y / 100; val c = y % 100; val d = b / 4; val e = b % 4
-        val f = (b + 8) / 25; val g = (b - f + 1) / 3; val h = (19 * a + b - d - g + 15) % 30
-        val i = c / 4; val k = c % 4; val l = (32 + 2 * e + 2 * i - h - k) % 7; val m = (a + 11 * h + 22 * l) / 451
-        val month = (h + l - 7 * m + 114) / 31; val day = ((h + l - 7 * m + 114) % 31) + 1
-        return LocalDate.of(y, month, day)
-    }
+    private fun easter(y: Int): LocalDate = Holidays.easterSunday(y)
 
     private fun dayOf(n: DayNode): Moment {
         val d = today
@@ -861,7 +957,7 @@ class Evaluator(private val ctx: EvalCtx) {
         val step = if (n >= 0) 1L else -1L
         while (left > 0) {
             d = d.plusDays(step)
-            if (d.dayOfWeek.value <= 5) left--
+            if (Holidays.isWorkday(st.holidays, d.toLocalDate())) left--
         }
         return d
     }
@@ -897,15 +993,20 @@ class Evaluator(private val ctx: EvalCtx) {
         val unitNode = n.unit
         val unit = (unitNode as? BareUnit)?.unit ?: return diff
         if (unit.dim != Dim.TIME) throw EvalError("until")
-        // Workdays count Monday to Friday.
+        // Workdays count Monday to Friday, less public holidays.
         if (unit.single?.id == "workday") {
-            var count = 0L
-            var d = if (n.since) t.date else d0
-            val end = if (n.since) d0 else t.date
-            while (d.isBefore(end)) { d = d.plusDays(1); if (d.dayOfWeek.value <= 5) count++ }
-            return Qty(Num.of(count), unit)
+            return Qty(Num.of(if (n.since) workdaysBetween(t.date, d0) else workdaysBetween(d0, t.date)), unit)
         }
         return convertQty(diff, unit)
+    }
+
+    /** Workdays after [from] up to and including [to]: Monday to Friday, less public holidays. */
+    private fun workdaysBetween(from: LocalDate, to: LocalDate): Long {
+        val (a, b, sign) = if (to.isBefore(from)) Triple(to, from, -1L) else Triple(from, to, 1L)
+        var count = 0L
+        var d = a
+        while (d.isBefore(b)) { d = d.plusDays(1); if (Holidays.isWorkday(st.holidays, d)) count++ }
+        return count * sign
     }
 
     private fun ago(n: Ago): Value {

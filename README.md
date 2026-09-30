@@ -48,14 +48,29 @@ next to it, on the right. Change a number and everything that depends on it upda
   abbreviations (PST, CET, IST…), all offline.
 - **Live exchange rates** for 166 currencies and metals, refreshed twice a day, with rates built in
   for offline use. Crypto if you want it.
+- **Money over time.** `$10,000 at 5% for 10 years compounded monthly`, `interest on €60k at 2.5% for 3 years`,
+  `loan of $300k at 6% for 30 years` (→ `$1,798.65/month`), and tax both ways:
+  `€1,350 incl 19% VAT`, `€120 without 20% VAT`.
+- **Workdays and public holidays.** `workdays until Dec 18`, `5 workdays after Dec 22`,
+  `workdays between Oct 1 and Oct 31`, `next holiday`. Summa knows the nationwide holidays of 22
+  countries and skips your region's (Settings › Dates).
 - **Your own names.** `rate = $85/hour`, then `rate × 6.5 hours`. Refer to a line with `line6`,
   the line above with `prev`, and add up a block with `sum`.
+- **Your own units and functions.** `1 tin = 2.5 L`, then `7.2 L in tins`; `1 coffee = $4.50`, then
+  `$20 in coffees`; `tip(bill) = bill × 18%`, then `tip($86)`. Put them on the **Definitions** sheet
+  and they work in every sheet.
 - **Formats.** `255 in hex`, `0.2 as fraction`, `1/3 to 2 dp`, `$490 rounded to nearest hundred`.
+
+<p align="center">
+  <img src="docs/images/features.png" width="880" alt="A sheet about buying a flat in the Cobalt theme: a mortgage payment per month, VAT, compound interest, workdays, the next public holiday and a custom unit for paint tins">
+  <br><sub>Mortgage, VAT, savings, workdays and a home-made unit, in the Cobalt theme.</sub>
+</p>
 
 It's built for a laptop: a sheet list on the side, autocomplete for units, currencies and your own
 names (Tab to insert), keyboard shortcuts, right-click menus (copy, convert to another unit, insert a
 reference) and a floating toolbar with a **display** that shows the current line's answer, or the sum of the lines
-you select.
+you select. Sheets export as **PDF, a web page, CSV, Markdown or text**, or print with Ctrl+P.
+Five colour themes (Tangerine, your wallpaper, Cobalt, Lime and Berry), light and dark.
 
 ## Made for the Googlebook
 
@@ -95,8 +110,11 @@ you select.
 | `2:30 pm HKT in Berlin` | `8:30 am` |
 | `0x9F31 to decimal` | `40,753` |
 | `average of 36, 42, 19 and 81` | `44.5` |
+| `loan of $300k at 6% for 30 years` | `$1,798.65/month` |
+| `€120 without 20% VAT` | `€100.00` |
+| `1 watermelon = 20 lb`, then `100 kg in watermelons` | `11.02 watermelons` |
 
-Over 300 more examples, taken from the Soulver and Numi documentation, run as tests on every build
+Over 370 more examples, taken from the Soulver and Numi documentation, run as tests on every build
 (`engine/src/test/resources/corpus.tsv`).
 
 ## Install
@@ -128,6 +146,7 @@ To update, install a newer `Summa.apk` over the old one. Your sheets stay.
 | Ctrl+\ | Insert `prev` (the answer above) |
 | Ctrl+B | Show or hide the sheet list |
 | Ctrl+, | Settings |
+| Ctrl+P | Print, or save as PDF |
 | Tab / Esc | Insert or hide an autocomplete suggestion |
 
 ## Privacy
@@ -150,7 +169,10 @@ City and time-zone lookups are offline too.
 
 Everything here was written, built and tested on a Googlebook, in its built-in Linux Terminal:
 
-- The calculation engine is plain Kotlin, tested with JUnit in the Terminal in a few seconds.
+- The calculation engine is plain Kotlin, tested with JUnit in the Terminal in a few seconds. A
+  2,000-line sheet re-evaluates in about 50 ms on the Googlebook.
+- Public holidays are computed from rules (Easter, "last Monday in May", substitute days), so
+  there's no holiday data to download.
 - The app is Kotlin and Jetpack Compose with Material 3 Expressive, built with Gradle in the same
   Terminal and installed on the Googlebook's own Android over adb.
 - Screenshots in this README are the app's own window, captured on the device.
@@ -166,7 +188,7 @@ mistakes here are mine alone.
 
 Summa is inspired by [Soulver](https://soulver.app) and [Numi](https://numi.app), two lovely Mac
 apps that showed how good a notepad calculator can be. It's an independent project and isn't made
-by or affiliated with Acqualia (Soulver), Numi's maker, or Google.
+by or affiliated with Acqualia (Soulver) or Numi's maker.
 
 — Alexander ([@kuscher](https://github.com/kuscher))
 

@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import io.github.kuscher.summa.data.Library
+import io.github.kuscher.summa.engine.Definitions
 import io.github.kuscher.summa.engine.EngineSettings
 import io.github.kuscher.summa.engine.Rates
 import io.github.kuscher.summa.engine.SheetEngine
@@ -38,6 +39,8 @@ class Session(
     private val settings: StateFlow<EngineSettings>,
     private val rates: StateFlow<Rates>,
     private val scope: CoroutineScope,
+    /** The definitions sheet's names; null for the definitions sheet itself (which publishes them instead). */
+    private val definitions: StateFlow<Definitions>? = io.github.kuscher.summa.SummaApp.instance.definitions.takeIf { id != Library.DEFINITIONS },
 ) {
     val state = TextFieldState(initial)
     var evaluated by mutableStateOf<Evaluated?>(null)
@@ -46,18 +49,24 @@ class Session(
     private val jobs = ArrayList<Job>()
     private var savedText = initial
     private var tick by mutableStateOf(0)
+    /** How long the last evaluation took (for `./summa debug dump`). */
+    @Volatile var lastEvalMs = 0.0; private set
 
     init {
         jobs += scope.launch {
-            combine(snapshotFlow { state.text.toString() }, settings, rates, snapshotFlow { tick }) { t, s, r, _ -> Triple(t, s, r) }
+            val defs = definitions ?: kotlinx.coroutines.flow.MutableStateFlow(Definitions.EMPTY)
+            combine(snapshotFlow { state.text.toString() }, settings, rates, defs, snapshotFlow { tick }) { t, s, r, d, _ -> Input(t, s, r, d) }
                 .debounce(24)
-                .collect { (text, s, r) ->
+                .collect { (text, s, r, d) ->
                     val result = withContext(Dispatchers.Default) {
+                        val t0 = System.nanoTime()
                         engine.settings = s
                         engine.rates = r
-                        engine.evaluate(text, ZonedDateTime.now(s.zone))
+                        engine.definitions = d
+                        engine.evaluate(text, ZonedDateTime.now(s.zone)).also { lastEvalMs = (System.nanoTime() - t0) / 1_000_000.0 }
                     }
                     evaluated = Evaluated(text, result)
+                    if (definitions == null) io.github.kuscher.summa.SummaApp.instance.definitions.value = result.definitions
                     if (result.anyRateDependent) io.github.kuscher.summa.SummaApp.instance.rates.refresh()
                 }
         }
@@ -73,6 +82,8 @@ class Session(
             }
         }
     }
+
+    private data class Input(val text: String, val settings: EngineSettings, val rates: Rates, val defs: Definitions)
 
     fun saveNow() {
         val text = state.text.toString()

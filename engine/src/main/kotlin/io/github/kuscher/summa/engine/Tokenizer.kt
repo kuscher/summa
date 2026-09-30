@@ -13,6 +13,10 @@ class LexEnv(
     val vars: PhraseTrie<String> = PhraseTrie(),
     val places: PhraseTrie<Place> = Places.trie,
     val exactPlaces: PhraseTrie<Place> = Places.exact,
+    /** Units the user defined ("1 watermelon = 20 lb"), singular and plural. */
+    val units: PhraseTrie<UnitDef> = PhraseTrie(),
+    /** Functions the user defined ("tip(x) = x × 18%"). */
+    val funcs: PhraseTrie<String> = PhraseTrie(),
 )
 
 class Lexed(val tokens: List<Tok>, val spans: List<Span>)
@@ -204,6 +208,8 @@ object Tokenizer {
             val exactKeys = raw.map { it.text }
             val cands = ArrayList<Triple<Int, Int, () -> Tok?>>() // (length, priority, make)
             env.vars.longest(lowKeys, i)?.let { (n, name) -> cands += Triple(n, 5) { tok(T.VAR, r, raw[i + n - 1], name) } }
+            env.funcs.longest(lowKeys, i)?.let { (n, name) -> cands += Triple(n, 6) { tok(T.FUNC, r, raw[i + n - 1], name) } }
+            env.units.longest(lowKeys, i)?.let { (n, u) -> cands += Triple(n, 6) { tok(T.UNIT, r, raw[i + n - 1], UnitExpr.of(u)) } }
             Lexicon.cs.longest(exactKeys, i)?.let { (n, f) -> cands += Triple(n, 4) { f(text.substring(r.start, raw[i + n - 1].end))?.let { reTok(it, r, raw[i + n - 1], offset, text) } } }
             Lexicon.ci.longest(lowKeys, i)?.let { (n, f) -> cands += Triple(n, 3) { f(text.substring(r.start, raw[i + n - 1].end))?.let { reTok(it, r, raw[i + n - 1], offset, text) } } }
             env.places.longest(lowKeys, i)?.let { (n, p) -> cands += Triple(n, 2) { tok(T.PLACE, r, raw[i + n - 1], p) } }
@@ -212,7 +218,7 @@ object Tokenizer {
             var placed = false
             for ((n, _, make) in best) {
                 val t = make() ?: continue
-                if (!accept(t, toks, raw, i, n)) continue
+                if (!accept(t, toks, raw, i, n, env.vars)) continue
                 add(fixUp(t, toks, raw, i + n), r)
                 i += n
                 placed = true
@@ -230,11 +236,32 @@ object Tokenizer {
     private fun reTok(t: Tok, from: Raw, to: Raw, offset: Int, text: String) =
         Tok(t.type, from.start + offset, to.end + offset, text.substring(from.start, to.end), t.v)
 
+    /** A line with "at" and a percentage reads "for", "over" and "loan" as finance words. */
+    private fun financeContext(raw: List<Raw>, vars: PhraseTrie<String>? = null): Boolean {
+        val at = raw.indexOfFirst { it.lower == "at" || it.text == "@" }
+        if (at < 0) return false
+        if (raw.any { it.text == "%" || it.lower in setOf("percent", "pct") }) return true
+        // "at rate for 30 years", where rate = 6%
+        return vars != null && vars.longest(raw.map { it.lower }, at + 1) != null
+    }
+
+    /** "incl 20%", "without VAT": the tax words need a percentage (or a variable) after them. */
+    private fun pctFollows(raw: List<Raw>, at: Int, vars: PhraseTrie<String>?): Boolean {
+        val a = raw.getOrNull(at) ?: return false
+        if (a.kind == 'n') return raw.getOrNull(at + 1)?.let { it.text == "%" || it.lower in setOf("percent", "pct") } == true
+        return vars != null && a.kind == 'w' && vars.longest(raw.map { it.lower }, at) != null
+    }
+
     /** Context rules that stop short symbols and common words from being read as units. */
-    private fun accept(t: Tok, toks: List<Tok>, raw: List<Raw>, i: Int, n: Int): Boolean {
+    private fun accept(t: Tok, toks: List<Tok>, raw: List<Raw>, i: Int, n: Int, vars: PhraseTrie<String>? = null): Boolean {
         val prev = toks.lastOrNull { it.type != T.WORD }
         val prevAny = toks.lastOrNull()
         val next = raw.getOrNull(i + n)
+        if (t.type == T.KW) when {
+            t.v == K.FOR || t.v == K.LOAN || t.v == K.INTEREST || t.v == K.SIMPLE_INTEREST -> return financeContext(raw, vars)
+            (t.v as? String)?.startsWith(K.CMP) == true -> return financeContext(raw, vars)
+            t.v == K.INCL || t.v == K.EXCL -> return prevAny != null && pctFollows(raw, i + n, vars)
+        }
         when (t.type) {
             T.UNIT -> {
                 val u = t.v as UnitExpr
@@ -300,8 +327,9 @@ object Tokenizer {
         }
     }
 
-    /** Turns a lone "x" between two operands into multiplication. */
+    /** Turns a lone "x" between two operands into multiplication, and "over 30 years" into a loan term. */
     private fun fixUp(t: Tok, toks: List<Tok>, raw: List<Raw>, nextIdx: Int): Tok {
+        if (t.type == T.OP && t.text.lowercase() == "over" && financeContext(raw)) return Tok(T.KW, t.start, t.end, t.text, K.FOR)
         if (t.type == T.FMT && t.text.lowercase() == "x" && toks.lastOrNull()?.type == T.NUM) {
             val nx = raw.getOrNull(nextIdx)
             if (nx != null && (nx.kind == 'n' || nx.kind == 'c' || nx.text == "(")) return Tok(T.OP, t.start, t.end, t.text, "*")
@@ -323,6 +351,9 @@ object Tokenizer {
     private fun finish(all: List<Tok>, text: String, offset: Int): Lexed {
         // "x" as a word between two operands means times.
         val list = all.toMutableList()
+        // "$300k loan at 6% for 30 years": the finance word leads, whatever the word order.
+        val lead = list.indexOfFirst { it.type == T.KW && it.v in setOf(K.LOAN, K.INTEREST, K.SIMPLE_INTEREST) }
+        if (lead > 0) list.add(0, list.removeAt(lead))
         for (k in list.indices) {
             val t = list[k]
             if (t.type == T.WORD && t.text.lowercase() == "x" && k > 0 && k + 1 < list.size &&
