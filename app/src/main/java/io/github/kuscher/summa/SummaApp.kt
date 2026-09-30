@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class SummaApp : Application() {
@@ -19,6 +20,16 @@ class SummaApp : Application() {
     lateinit var prefs: Prefs; private set
     lateinit var rates: RatesRepo; private set
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    /** Main-thread scope for the shared sheet sessions. */
+    private val uiScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    /** The engine's settings, following Settings and the device locale. */
+    val engineSettings: kotlinx.coroutines.flow.StateFlow<io.github.kuscher.summa.engine.EngineSettings> by lazy {
+        prefs.state.map { prefs.engineSettings(it) }.stateIn(scope, kotlinx.coroutines.flow.SharingStarted.Eagerly, prefs.engineSettings())
+    }
+
+    /** The open sheets, shared by all windows (see [io.github.kuscher.summa.ui.editor.Sessions]). */
+    val sessions by lazy { io.github.kuscher.summa.ui.editor.Sessions(library, engineSettings, rates.rates, uiScope) }
 
     /** What the definitions sheet declares; every other sheet sees it. Its own session keeps it live while you type. */
     val definitions = MutableStateFlow(Definitions.EMPTY)

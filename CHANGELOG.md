@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3 (2026-09-30)
+
+- **The mini calculator shows the sheet you're on**, not a separate scratch sheet. It's the same
+  live sheet as the big window: what you type in one is there in the other. From the Quick
+  Settings tile or the launcher it opens the sheet you had open last. The header shows its title.
+- **Tooltips:** rest the pointer on a button for a moment (+, the sheet-list button, mini calculator,
+  Share, More, Back, keep on top) and a small label appears, with its keyboard shortcut.
+- Two windows on the same sheet now share it too, instead of saving over each other.
+
 ## 1.2.2 (2026-09-30)
 
 - **Open-source licences in the app:** Settings › About › Open-source licences lists everything

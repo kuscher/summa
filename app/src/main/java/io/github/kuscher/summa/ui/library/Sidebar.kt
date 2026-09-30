@@ -101,13 +101,10 @@ fun SearchField(state: TextFieldState, modifier: Modifier = Modifier, focus: Foc
     }
 }
 
+/** An icon button with a tooltip (after a short hover). */
 @Composable
-private fun IconBtn(sym: String, label: String, size: Int = 36, onClick: () -> Unit) {
-    Box(
-        Modifier.size(size.dp).clip(CircleShape).clickable(onClickLabel = label, onClick = onClick).semantics { contentDescription = label },
-        contentAlignment = Alignment.Center,
-    ) { SymIcon(sym, size = 21.sp, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
-}
+private fun IconBtn(sym: String, label: String, size: Int = 36, shortcut: String? = null, onClick: () -> Unit) =
+    io.github.kuscher.summa.ui.TipIconButton(sym, label, shortcut, size.dp, onClick = onClick)
 
 /** "Deleted “X” · Undo", at the top of the list for a few seconds after a delete. */
 @Composable
@@ -134,7 +131,7 @@ fun Sidebar(
     Column(modifier.fillMaxHeight().background(scheme.surfaceContainerLow).padding(horizontal = 10.dp)) {
         Row(Modifier.padding(top = 6.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             SearchField(search, Modifier.weight(1f), searchFocus)
-            IconBtn(Sym.ADD, "New sheet", onClick = onNew)
+            IconBtn(Sym.ADD, "New sheet", shortcut = "Ctrl+N", onClick = onNew)
         }
         val sheets = visibleSheets(library, index, q)
         LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -196,7 +193,7 @@ fun PhoneList(
         Row(Modifier.fillMaxWidth().height(64.dp).padding(start = 20.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("Summa", Modifier.weight(1f), style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight(800)))
             IconBtn(Sym.SEARCH, "Search sheets", 44) { searching = !searching; if (!searching) search.edit { replace(0, length, "") } }
-            IconBtn(Sym.ADD, "New sheet", 44, onNew)
+            IconBtn(Sym.ADD, "New sheet", 44, onClick = onNew)
             Box {
                 IconBtn(Sym.MORE_VERT, "More", 44) { more = true }
                 DropdownMenu(more, onDismissRequest = { more = false }, shape = RoundedCornerShape(14.dp)) {

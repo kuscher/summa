@@ -3,7 +3,9 @@
 State and next steps, for whoever continues (human or Claude). Keep this current at every milestone.
 Read CLAUDE.md first (layout, dev loop, gotchas).
 
-## Where things are (v1.2.2, 2026-09-30)
+## Where things are (v1.3, 2026-09-30)
+- 1.3: the mini window shows the current sheet via the shared `Sessions` hub (the old scratch
+  sheet file stays hidden and unused); hover tooltips (`HoverTip`) on icon buttons.
 - 1.2.2: licence texts in the app (assets/licenses + Settings › About › Open-source licences,
   THIRD_PARTY_NOTICES.md), PRIVACY.md, the Google Play kit in store-submission/ (texts, graphics,
   policy answers; `ui/Shots.kt` + `tools/store_assets.py` remake the screenshots). Answers auto-size.

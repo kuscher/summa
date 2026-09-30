@@ -8,6 +8,14 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.material3.PlainTooltip
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.draw.clip
@@ -91,5 +99,60 @@ fun SummaMark(size: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier) 
                 modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = 1.5f; scaleY = 1.5f },
             )
         }
+    }
+}
+
+/**
+ * A tooltip that appears after the pointer has rested on [content] for a moment (no surprises
+ * while moving across the header), and goes away when the pointer leaves or the button is pressed.
+ * Shows [label], and the keyboard [shortcut] in a quieter tone when there is one.
+ */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+fun HoverTip(
+    label: String, shortcut: String? = null, below: Boolean = true,
+    content: @Composable (androidx.compose.foundation.interaction.MutableInteractionSource) -> Unit,
+) {
+    val state = androidx.compose.material3.rememberTooltipState(isPersistent = true)
+    val interaction = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val hovered by interaction.collectIsHoveredAsState()
+    val pressed by interaction.collectIsPressedAsState()
+    androidx.compose.runtime.LaunchedEffect(hovered, pressed) {
+        if (hovered && !pressed) { kotlinx.coroutines.delay(550); state.show() } else state.dismiss()
+    }
+    androidx.compose.material3.TooltipBox(
+        positionProvider = androidx.compose.material3.TooltipDefaults.rememberTooltipPositionProvider(
+            if (below) androidx.compose.material3.TooltipAnchorPosition.Below else androidx.compose.material3.TooltipAnchorPosition.Above, 6.dp),
+        tooltip = {
+            PlainTooltip(shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)) {
+                androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Text(label, style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
+                    if (shortcut != null) Text(
+                        shortcut, androidx.compose.ui.Modifier.padding(start = 10.dp),
+                        style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
+                        color = LocalContentColor.current.copy(alpha = 0.62f),
+                    )
+                }
+            }
+        },
+        state = state,
+        enableUserInput = false,
+    ) { content(interaction) }
+}
+
+/** A round icon button with a [HoverTip]. */
+@Composable
+fun TipIconButton(
+    sym: String, label: String, shortcut: String? = null, size: androidx.compose.ui.unit.Dp = 40.dp, filled: Boolean = false,
+    tint: Color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant, below: Boolean = true, onClick: () -> Unit,
+) {
+    HoverTip(label, shortcut, below) { interaction ->
+        androidx.compose.foundation.layout.Box(
+            Modifier.size(size).clip(androidx.compose.foundation.shape.CircleShape)
+                .hoverable(interaction)
+                .clickable(interactionSource = interaction, indication = androidx.compose.material3.ripple(), onClickLabel = label, onClick = onClick)
+                .semantics { contentDescription = label },
+            contentAlignment = androidx.compose.ui.Alignment.Center,
+        ) { SymIcon(sym, size = 21.sp, filled = filled, tint = tint) }
     }
 }

@@ -85,10 +85,11 @@ Lime and Berry), light and dark.
 
 - **One calm bar on top.** The window's own title bar (app handle, window buttons) is painted to
   match Summa's header just below it, with the sheet title, the mini calculator, Share and ⋮.
-- **A mini calculator that stays on top.** Open it from the header or Ctrl+Shift+M and the big
-  window makes way for it; its ⤢ button (or Ctrl+Shift+M again) brings the big window back. The
-  Quick Settings tile and the launcher open it too. It keeps one scratch sheet and, on Android 17
-  desktops, stays above your other windows (its pin, or Settings).
+- **A mini calculator that stays on top.** Open it from the header or Ctrl+Shift+M and the sheet
+  you're on moves into a small window while the big one makes way; its ⤢ button (or Ctrl+Shift+M
+  again) brings the big window back, on the same sheet. The Quick Settings tile and the launcher
+  open it too, on the sheet you had open last. On Android 17 desktops it stays above your other
+  windows (its pin, or Settings).
 - **"Calculate" in every app.** Select `€49 in USD` in Chrome or any app, right-click › Calculate,
   and a small card shows the answer with Copy, Insert answer and Open in Summa.
 - **A window per sheet.** Right-click a sheet › Open in new window, or use the taskbar's New window.

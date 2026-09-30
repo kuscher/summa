@@ -112,3 +112,37 @@ class Session(
         jobs.forEach { it.cancel() }
     }
 }
+
+/**
+ * One [Session] per open sheet, shared by every window that shows it (big windows and the mini
+ * one), so an edit in one window is the same text in the other. A session stays alive a few
+ * seconds after its last window lets go, so swapping between the big and the mini window reuses
+ * it instead of re-reading a file that may still be saving. Main thread only.
+ */
+class Sessions(
+    private val library: Library,
+    private val settings: StateFlow<EngineSettings>,
+    private val rates: StateFlow<Rates>,
+    private val scope: CoroutineScope,
+) {
+    private class Entry(val session: Session, var users: Int, var closing: Job? = null)
+    private val open = HashMap<String, Entry>()
+
+    fun acquire(id: String): Session {
+        open[id]?.let { e -> e.closing?.cancel(); e.closing = null; e.users++; return e.session }
+        val s = Session(id, library.text(id), library, settings, rates, scope)
+        open[id] = Entry(s, 1)
+        return s
+    }
+
+    fun release(s: Session) {
+        val e = open[s.id]?.takeIf { it.session === s } ?: return
+        e.users--
+        s.saveNow()
+        if (e.users > 0) return
+        e.closing = scope.launch {
+            delay(5_000)
+            if (e.users <= 0 && open[s.id] === e) { open.remove(s.id); s.close() }
+        }
+    }
+}

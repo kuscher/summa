@@ -111,9 +111,7 @@ fun SettingsScreen(onBack: () -> Unit, modifier: Modifier = Modifier, showHeader
 @Composable
 fun Header(title: String, onBack: () -> Unit) {
     androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth().padding(start = 8.dp, end = 16.dp, top = 8.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(48.dp).clip(CircleShape).clickable(onClickLabel = "Back", onClick = onBack).semantics { contentDescription = "Back" }, contentAlignment = Alignment.Center) {
-            SymIcon(Sym.ARROW_BACK)
-        }
+        io.github.kuscher.summa.ui.TipIconButton(Sym.ARROW_BACK, "Back", size = 48.dp, onClick = onBack)
         Text(title, Modifier.padding(start = 6.dp), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight(700)))
     }
 }

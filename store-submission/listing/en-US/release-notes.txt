@@ -1,1 +1,1 @@
-Open-source licences are now listed in the app, long answers shrink to fit on phones, and the example sheet is a Munich weekend.
+The mini calculator now shows the sheet you're on, buttons show a label when you rest the pointer on them, and Settings lists every open-source licence.

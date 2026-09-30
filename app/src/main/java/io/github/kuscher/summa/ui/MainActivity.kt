@@ -99,9 +99,7 @@ import io.github.kuscher.summa.ui.library.Sidebar
 import kotlinx.coroutines.delay
 import io.github.kuscher.summa.ui.settings.SettingsScreen
 import io.github.kuscher.summa.ui.theme.SummaTheme
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.lang.ref.WeakReference
 
@@ -202,16 +200,17 @@ class MainActivity : ComponentActivity() {
             context.startActivity(i)
         }
 
-        /** From a big window: opens the mini calculator and closes this window (the mini can bring it back). */
+        /** From a big window: the sheet moves to the mini calculator and this window closes (the mini can bring it back). */
         fun switchToMini(activity: MainActivity) {
             activity.session?.saveNow()
-            openMini(activity)
+            openMini(activity, activity.session?.id)
             activity.finishAndRemoveTask()
         }
 
-        /** Opens the mini calculator, bottom-right of the screen. */
-        fun openMini(context: Context) {
+        /** Opens the mini calculator on [sheet] (or the sheet you had open last), bottom-right of the screen. */
+        fun openMini(context: Context, sheet: String? = null) {
             val i = Intent(context, MiniActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (sheet != null) i.putExtra(EXTRA_SHEET, sheet)
             val dm = context.resources.displayMetrics
             val w = (380 * dm.density).toInt(); val h = (460 * dm.density).toInt()
             val m = (24 * dm.density).toInt()
@@ -239,16 +238,15 @@ fun App(activity: MainActivity, requested: String?) {
         var deleted by remember { mutableStateOf<SheetMeta?>(null) }
         val search = rememberTextFieldState()
         val searchFocus = remember { FocusRequester() }
-        val engineSettings = remember { app.prefs.state.map { app.prefs.engineSettings(it) }.stateIn(scope, SharingStarted.Eagerly, app.prefs.engineSettings()) }
         val sidebarShown = settings.sidebar
         val chrome = MaterialTheme.colorScheme.surfaceContainerLow
         SideEffect { Caption.enable(activity, chrome.luminance() > 0.5f) }
 
         val id = currentId?.takeIf { cid -> index.sheets.any { it.id == cid && it.trashedAt == null } }
-        val session = remember(id) { id?.let { Session(it, app.library.text(it), app.library, engineSettings, app.rates.rates, scope) } }
+        val session = remember(id) { id?.let { app.sessions.acquire(it) } }
         DisposableEffect(session) {
             activity.session = session
-            onDispose { session?.close() }
+            onDispose { session?.let { app.sessions.release(it) } }
         }
         LaunchedEffect(id) { if (id != null) app.prefs.putString("lastSheet", id) }
 
@@ -397,15 +395,10 @@ private fun EmptyState(modifier: Modifier, onNew: () -> Unit) {
     }
 }
 
-/** A round icon button for the header. */
+/** A round icon button for the header, with a tooltip after a short hover. */
 @Composable
-fun HeaderButton(sym: String, label: String, onClick: () -> Unit) {
-    Box(
-        Modifier.size(40.dp).clip(CircleShape)
-            .clickable(onClickLabel = label, onClick = onClick).semantics { contentDescription = label },
-        contentAlignment = Alignment.Center,
-    ) { SymIcon(sym, size = 21.sp, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
-}
+fun HeaderButton(sym: String, label: String, shortcut: String? = null, onClick: () -> Unit) =
+    TipIconButton(sym, label, shortcut, onClick = onClick)
 
 @Composable
 private fun MenuItem(label: String, hint: String? = null, submenu: Boolean = false, onClick: () -> Unit) {
@@ -430,8 +423,8 @@ fun RowScope.SheetHeader(
     val scheme = MaterialTheme.colorScheme
     val context = LocalContext.current
     when {
-        onBack != null -> HeaderButton(Sym.ARROW_BACK, "Sheets", onBack)
-        onToggleSidebar != null -> HeaderButton(Sym.MENU, "Show or hide the sheet list", onToggleSidebar)
+        onBack != null -> HeaderButton(Sym.ARROW_BACK, "Sheets", onClick = onBack)
+        onToggleSidebar != null -> HeaderButton(Sym.MENU, "Show or hide the sheet list", "Ctrl+B", onToggleSidebar)
     }
     Text(
         meta?.title?.ifBlank { "Untitled" } ?: "Summa", Modifier.padding(start = 8.dp).weight(1f),
@@ -443,7 +436,7 @@ fun RowScope.SheetHeader(
     var export by remember { mutableStateOf(false) }
     var more by remember { mutableStateOf(false) }
     val files = rememberFileActions(session, onMessage)
-    if (onMini != null) HeaderButton(Sym.PICTURE_IN_PICTURE_ALT, "Mini calculator", onMini)
+    if (onMini != null) HeaderButton(Sym.PICTURE_IN_PICTURE_ALT, "Mini calculator", "Ctrl+Shift+M", onMini)
     Box {
         HeaderButton(Sym.IOS_SHARE, "Share") { share = true }
         DropdownMenu(share, onDismissRequest = { share = false }, shape = RoundedCornerShape(14.dp)) {

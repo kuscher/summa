@@ -26,7 +26,8 @@ Android 12+. Plain APK, Kotlin + Jetpack Compose, Material 3 Expressive (materia
     the last run's failures; `PerfProbe` times a real sheet (SUMMA_PERF=path).
 - `app/` — Compose app, package `io.github.kuscher.summa`.
   - `data/` `Library` (sheets as text files + index.json, Auto Backup), `Prefs` (settings → `EngineSettings`), `RatesRepo`.
-  - `ui/editor/` `Session` (text state, background evaluation, autosave, "Copied" flash), `SheetEditor`
+  - `ui/editor/` `Session` (text state, background evaluation, autosave, "Copied" flash) and
+    `Sessions` (one shared session per open sheet for all windows, big and mini; `app.sessions`), `SheetEditor`
     (text field with syntax colours via `OutputTransformation`, plain answers aligned with
     `TextLayoutResult`, grey ghost-text autocomplete drawn after the cursor).
   - `ui/library/Sidebar.kt` (desktop sheet history, phone list), `ui/settings/SettingsScreen.kt`,
@@ -55,6 +56,7 @@ Android 12+. Plain APK, Kotlin + Jetpack Compose, Material 3 Expressive (materia
   tonal answer column. Feedback is in place ("Copied" on the answer, a few words in the title bar,
   Undo in the sheet list). Menus appear only on click or right-click.
 - Chrome = title bar + (desktop) sheet history, one tone darker than the page. Keep settings short.
+- Icon buttons use `TipIconButton`/`HoverTip` (ui/Ui.kt): a tooltip after ~0.5 s of hover, with the shortcut.
 - The header is NOT drawn inside the caption bar (user's request): `CaptionSpacer` paints the
   transparent caption area the header's colour and `HeaderRow` sits right below it.
 

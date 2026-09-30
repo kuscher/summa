@@ -56,18 +56,17 @@ import io.github.kuscher.summa.SummaApp
 import io.github.kuscher.summa.data.Library
 import io.github.kuscher.summa.ui.editor.Session
 import io.github.kuscher.summa.ui.theme.SummaTheme
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * The mini calculator: one scratch sheet in a small window. On Android 17 desktops it can stay
- * above other windows (the pinned windowing layer); the system parks a pinned window bottom-right.
+ * The mini calculator: the sheet you were on, in a small window (the same live sheet as the big
+ * window, see Sessions). On Android 17 desktops it can stay above other windows (the pinned
+ * windowing layer); the system parks a pinned window bottom-right.
  */
 class MiniActivity : ComponentActivity() {
     private var pinned by mutableStateOf(false)
-    /** The scratch sheet's session, for the debug hooks. */
+    /** The sheet shown here, and its session (the latter for the debug hooks). */
+    private var sheetId by mutableStateOf("")
     var session: Session? = null
     private var autoPinTried = false
     private var onMessage: (String) -> Unit = {}
@@ -79,17 +78,21 @@ class MiniActivity : ComponentActivity() {
         instance = java.lang.ref.WeakReference(this)
         captionTracker = CaptionTracker(this)
         val app = SummaApp.instance
-        app.library.scratch()
+        sheetId = pickSheet(intent)
         setContent {
             val settings by app.prefs.state.collectAsState()
             val scope = rememberCoroutineScope()
             SummaTheme(settings) {
                 var status by remember { mutableStateOf<String?>(null) }
                 onMessage = { m -> status = m; scope.launch { kotlinx.coroutines.delay(2600); if (status == m) status = null } }
-                val engineSettings = remember { app.prefs.state.map { app.prefs.engineSettings(it) }.stateIn(scope, SharingStarted.Eagerly, app.prefs.engineSettings()) }
-                val session = remember { Session(Library.SCRATCH, app.library.text(Library.SCRATCH), app.library, engineSettings, app.rates.rates, scope) }
-                this@MiniActivity.session = session
-                DisposableEffect(session) { onDispose { session.close() } }
+                val id = sheetId
+                val session = remember(id) { app.sessions.acquire(id) }
+                DisposableEffect(session) {
+                    this@MiniActivity.session = session
+                    onDispose { app.sessions.release(session) }
+                }
+                val index by app.library.state.collectAsState()
+                val title = index.sheets.firstOrNull { it.id == id }?.title?.ifBlank { null } ?: "Untitled"
                 val bar = MaterialTheme.colorScheme.surface
                 SideEffect { Caption.enable(this, bar.luminance() > 0.5f) }
                 Surface(color = MaterialTheme.colorScheme.surface) {
@@ -103,17 +106,13 @@ class MiniActivity : ComponentActivity() {
                             val cap = rememberCaptionInsets(captionTracker)
                             CaptionSpacer(cap, MaterialTheme.colorScheme.surface)
                             HeaderRow(MaterialTheme.colorScheme.surface) {
-                                Text("Mini", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight(650)))
-                                Spacer(Modifier.weight(1f))
+                                Text(title, Modifier.padding(start = 8.dp).weight(1f), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight(650)),
+                                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                                 status?.let { Text(it, Modifier.padding(horizontal = 6.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
-                                HeaderButton(Sym.OPEN_IN_FULL, "Back to the big window") { backToBig() }
+                                HeaderButton(Sym.OPEN_IN_FULL, "Back to the big window", "Ctrl+Shift+M") { backToBig() }
                                 if (Build.VERSION.SDK_INT >= 37) {
-                                    Box(
-                                        Modifier.size(38.dp).clip(CircleShape)
-                                            .clickable(onClickLabel = if (pinned) "Stop keeping on top" else "Keep on top") { togglePin() }
-                                            .semantics { contentDescription = if (pinned) "Stop keeping on top" else "Keep on top" },
-                                        contentAlignment = Alignment.Center,
-                                    ) { SymIcon(Sym.KEEP, size = 20.sp, filled = pinned, tint = if (pinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant) }
+                                    TipIconButton(Sym.KEEP, if (pinned) "Stop keeping on top" else "Keep on top", filled = pinned,
+                                        tint = if (pinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant) { togglePin() }
                                 }
                             }
                             MainActivityBridge.EditorPaneFor(session, onMessage)
@@ -135,10 +134,27 @@ class MiniActivity : ComponentActivity() {
 
     companion object { var instance: java.lang.ref.WeakReference<MiniActivity> = java.lang.ref.WeakReference(null) }
 
-    /** Back to the big window (on the sheet you had open), closing the mini one. */
+    /** Back to the big window, on the same sheet, closing the mini one. */
     fun backToBig() {
-        startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        session?.saveNow()
+        startActivity(Intent(this, MainActivity::class.java).putExtra(MainActivity.EXTRA_SHEET, sheetId).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         finishAndRemoveTask()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // Already open: "mini" from another big window moves that window's sheet here.
+        intent.getStringExtra(MainActivity.EXTRA_SHEET)?.let { sheetId = pickSheet(intent) }
+    }
+
+    /** The sheet asked for, else the one you had open last, else the newest one (or a new one). */
+    private fun pickSheet(i: Intent?): String {
+        val lib = SummaApp.instance.library
+        fun ok(id: String?) = id != null && lib.get(id)?.trashedAt == null && lib.get(id) != null
+        i?.getStringExtra(MainActivity.EXTRA_SHEET)?.let { if (ok(it)) return it }
+        SummaApp.instance.prefs.getString("lastSheet")?.let { if (ok(it)) return it }
+        lib.state.value.sheets.filter { it.trashedAt == null && !Library.isSpecial(it.id) }.maxByOrNull { it.updated }?.let { return it.id }
+        return lib.create("").id
     }
 
 
