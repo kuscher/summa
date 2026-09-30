@@ -44,7 +44,7 @@ class SummaApp : Application() {
         scope.launch { library.purgeTrash(7L * 24 * 3600 * 1000) }
         if (!prefs.value.firstRunDone) {
             if (library.state.value.sheets.isEmpty()) {
-                library.create(Samples.LISBON)
+                library.create(Samples.MUNICH)
                 library.create(Samples.WELCOME).also { prefs.putString("lastSheet", it.id) }
             }
             prefs.update { it.copy(firstRunDone = true) }
@@ -73,7 +73,7 @@ object Samples {
 
         # Dates and time
         days until Dec 25
-        3 pm Lisbon in Tokyo
+        3 pm Munich in Tokyo
         today + 3 weeks
 
         # Money over time
@@ -92,21 +92,21 @@ object Samples {
         // suggestion: Tab takes it.
     """.trimIndent()
 
-    val LISBON = """
-        # Lisbon weekend
-        Flights: 2 × €189
-        Hotel: 3 nights × $142 in EUR
-        Tram passes: 6 × €6.80
-        Pastéis de nata: 12 × €1.40
+    val MUNICH = """
+        # Munich weekend
+        Flights: 2 × €149
+        Hotel: 3 nights × $165 in EUR
+        MVV day tickets: 3 × €9.70
+        Pretzels and beer: 4 × €12.40
         sum
         Split 3 ways: line6 / 3
 
-        # Road trip to Porto
-        distance = 313 km
+        # Day trip to Salzburg
+        distance = 145 km
         consumption = 6.4 L/100 km
         fuel = distance × consumption
-        fuel × €1.79/L
+        fuel × €1.74/L
         distance in miles
-        Leave 8:30 am + 3 h 20 min
+        Leave 8:30 am + 1 h 50 min
     """.trimIndent()
 }

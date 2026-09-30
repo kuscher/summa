@@ -45,7 +45,7 @@ gets in the way: no toolbars, no pop-ups, just the sheet.
 - **Percentages, every way.** `20% of $10`, `5% on $30`, `6% off 40 EUR`, `$50 as a % of $100`,
   `20 is 10% of what`, `50 to 75 is what %`.
 - **Dates and time zones.** `days until Christmas`, `next friday + 2 weeks`, `8:30 am + 3 h 20 min`,
-  `3 pm Lisbon in Tokyo`, `time in Japan`. Over 6,000 cities, every country and the usual
+  `3 pm Munich in Tokyo`, `time in Japan`. Over 6,000 cities, every country and the usual
   abbreviations (PST, CET, IST…), all offline.
 - **Live exchange rates** for 166 currencies and metals, refreshed twice a day, with rates built in
   for offline use. Crypto if you want it.

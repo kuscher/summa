@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1 (2026-09-30)
+
+- The example sheet for new installs is now a **Munich weekend**: flights, a hotel paid in dollars,
+  MVV day tickets, pretzels and beer, split three ways, and a day trip to Salzburg. The welcome
+  sheet's time-zone line reads `3 pm Munich in Tokyo`.
+
 ## 1.2 (2026-09-30)
 
 - **Big window and mini window take turns:** opening the mini calculator from the header (or
