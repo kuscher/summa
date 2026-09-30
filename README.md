@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/icon.png" width="112" alt="Summa icon: a tangerine calculator with a display and plus, minus, times and divide keys">
+  <img src="docs/images/icon.png" width="112" alt="Summa icon: a tangerine circle in four quadrants with plus, minus, times and divide">
 </p>
 
 <h1 align="center">Summa</h1>

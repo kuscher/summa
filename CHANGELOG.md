@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1 (2026-09-30)
+
+- **A simpler icon:** one circle in four quadrants, each a slightly different tangerine, with
+  + − × ÷ in white. The launch screen shows it too.
+
 ## 1.1 (2026-09-30)
 
 Just the sheet. Summa is now much closer to Numi: you type on the left, answers appear on the right,
