@@ -43,8 +43,11 @@ import io.github.kuscher.summa.ui.theme.SummaTheme
  * open the text as a new sheet.
  */
 class CalculateActivity : ComponentActivity() {
+    companion object { var instance: java.lang.ref.WeakReference<CalculateActivity> = java.lang.ref.WeakReference(null) }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        instance = java.lang.ref.WeakReference(this)
         val app = SummaApp.instance
         val text = intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.toString().orEmpty().trim()
         val readOnly = intent.getBooleanExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, true)

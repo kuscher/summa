@@ -39,6 +39,10 @@ class DebugReceiver : BroadcastReceiver() {
             "screen" -> main.post { DebugHooks.screen(arg); out("ok") }
             "focus" -> main.post { DebugHooks.focus(); out("ok") }
             "mini" -> main.post { io.github.kuscher.summa.ui.MainActivity.openMini(act ?: context.applicationContext); out("ok") }
+            "minitext" -> main.post {
+                val s = io.github.kuscher.summa.ui.MiniActivity.instance.get()?.session ?: return@post out("no mini")
+                s.state.setTextAndPlaceCursorAtEnd(String(Base64.decode(arg, Base64.DEFAULT), Charsets.UTF_8)); out("ok")
+            }
             "tomini" -> main.post { act?.let { io.github.kuscher.summa.ui.MainActivity.switchToMini(it) }; out(if (act != null) "ok" else "no activity") }
             "tobig" -> main.post { io.github.kuscher.summa.ui.MiniActivity.instance.get()?.backToBig(); out("ok") }
             "closemini" -> main.post { io.github.kuscher.summa.ui.MiniActivity.instance.get()?.finishAndRemoveTask(); out("ok") }
@@ -79,8 +83,11 @@ class DebugReceiver : BroadcastReceiver() {
             "shot" -> main.post {
                 // Our own window only (PixelCopy of this activity's surface): no other apps, no pointer.
                 // Whichever Summa window is open: the big one, or the mini one.
-                val a: android.app.Activity = act?.takeIf { !it.isDestroyed && !it.isFinishing }
-                    ?: io.github.kuscher.summa.ui.MiniActivity.instance.get()?.takeIf { !it.isDestroyed && !it.isFinishing }
+                // shot NAME: names starting "mini" or "calc" capture those windows.
+                val mini = io.github.kuscher.summa.ui.MiniActivity.instance.get()?.takeIf { !it.isDestroyed && !it.isFinishing }
+                val calc = io.github.kuscher.summa.ui.CalculateActivity.instance.get()?.takeIf { !it.isDestroyed && !it.isFinishing }
+                val a: android.app.Activity = (if (arg.startsWith("mini")) mini else if (arg.startsWith("calc")) calc else null)
+                    ?: act?.takeIf { !it.isDestroyed && !it.isFinishing } ?: mini
                     ?: return@post out("no activity")
                 val v = a.window.decorView
                 val bmp = Bitmap.createBitmap(v.width, v.height, Bitmap.Config.ARGB_8888)
@@ -113,6 +120,14 @@ class DebugReceiver : BroadcastReceiver() {
                 val dir = File(context.cacheDir, "exports").apply { mkdirs() }
                 val f = File(dir, "probe.pdf").apply { writeText("probe") }
                 out(androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".files", f).toString())
+            }
+            "render" -> main.post {
+                // render KIND W H DPI DARK(0|1) BASE64TEXT → cache/render.png (store screenshots; see Shots.kt)
+                val a = act ?: return@post out("no activity")
+                val p = arg.split(' ')
+                val text = String(Base64.decode(p.getOrElse(5) { "" }, Base64.DEFAULT), Charsets.UTF_8)
+                io.github.kuscher.summa.ui.Shots.render(a, p[0], p[1].toInt(), p[2].toInt(), p[3].toInt(), p[4] == "1", text,
+                    File(context.cacheDir, "render.png")) { out(it) }
             }
             "defs" -> { val d = app.definitions.value; out("vars=${d.vars.keys} units=${d.units.map { it.names }} fns=${d.functions.keys}") }
             "holidays" -> { app.prefs.update { it.copy(holidays = arg) }; out(app.prefs.holidayCountry()) }

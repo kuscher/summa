@@ -1,7 +1,8 @@
 # Summa golden corpus. input<TAB>expected answer of the last line. "⏎" separates lines; "∅" = no answer.
 # Context: now = Wed 30 Sep 2026 10:00 Europe/Berlin, en-US formats, $ = USD, trig in radians.
 # Test rates (1 EUR =): USD 1.2, GBP 0.8, JPY 160, CAD 1.5, CHF 0.9, BTC 0.00001.
-# Sources: Soulver 4 docs, Numi docs/CLI (see docs/research). Answers are in Summa's own format.
+# Inputs are short phrases in the style of notepad-calculator examples (many modelled on the kinds of
+# lines Soulver's and Numi's public docs show). Answers are Summa's own, in Summa's own format.
 
 ## operators and numbers
 8 times 9	72

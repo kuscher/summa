@@ -393,12 +393,15 @@ private fun Answer(
                     customActions = listOf(androidx.compose.ui.semantics.CustomAccessibilityAction("Answer options") { menu = true; true })
                 },
         ) {
-            Text(
-                if (copied) "Copied" else answer, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End,
+            // Long answers shrink a little to fit the column (phones) instead of being cut off.
+            androidx.compose.foundation.text.BasicText(
+                if (copied) "Copied" else answer, maxLines = 1,
                 style = TextStyle(
                     fontFamily = SummaFonts.round, fontSize = settings.textSize.sp, fontWeight = FontWeight(if (isTotal) 760 else 600),
-                    fontFeatureSettings = "tnum", color = fg,
+                    fontFeatureSettings = "tnum", color = fg, textAlign = TextAlign.End,
                 ),
+                autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(
+                    minFontSize = (settings.textSize * 0.7f).sp, maxFontSize = settings.textSize.sp, stepSize = 0.5.sp),
             )
         }
         }

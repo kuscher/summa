@@ -11,6 +11,7 @@
 #                               export pdf|html|csv, print, defs, holidays auto|none|CC
 #   ./summa sheet FILE          replace the open sheet's text with FILE (or - for stdin)
 #   ./summa shot [NAME] [OUT]   a PNG of Summa's own window (PixelCopy: no other apps, no pointer)
+#   ./summa render KIND W H DPI DARK FILE OUT   render phone|list|large|focus offscreen (store shots)
 #   ./summa pull FILE [OUT]     copy a file from the app's cache dir (debug export writes export.pdf/html/csv)
 #   ./summa logs [N]            Summa's log lines
 #   ./summa sh CMD...           adb shell on the device (e.g. dumpsys gfxinfo io.github.kuscher.summa)
@@ -68,6 +69,12 @@ case "$cmd" in
     A logcat -c; path=$(WAIT=1.2 dbg shot "$name")
     u=$(A shell am get-current-user | tr -d '\r')
     A exec-out run-as "$PKG" --user "$u" cat "cache/$name.png" > "$out" && echo "$out" ;;
+  render)  # ./summa render KIND W H DPI DARK SHEET.txt OUT.png — Summa's UI offscreen at any size (debug builds)
+    kind=$1; w=$2; h=$3; dpi=$4; dark=$5; f=$6; out=$7
+    b64=$(base64 -w0 < "$f"); A logcat -c
+    res=$(WAIT=5 dbg render "$kind $w $h $dpi $dark $b64"); echo "$res" | grep -q '^/' || { echo "render: $res"; exit 1; }
+    u=$(A shell am get-current-user | tr -d '\r')
+    A exec-out run-as "$PKG" --user "$u" cat cache/render.png > "$out" && echo "$out" ;;
   pull)  # pull a file from Summa's cache dir (debug builds): ./summa pull export.pdf [OUT]
     u=$(A shell am get-current-user | tr -d '\r'); out=${2:-$TMP/summa-$1}
     A exec-out run-as "$PKG" --user "$u" cat "cache/$1" > "$out" && echo "$out" ;;

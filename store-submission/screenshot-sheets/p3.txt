@@ -1,0 +1,12 @@
+# Buying a flat
+price = €420,000
+deposit = 20% of price
+borrow = price − deposit
+Monthly: loan of borrow at 3.9% for 25 years
+Notary: 6.5% of price
+Movers: €1,350 incl 19% VAT
+
+# Saving for it
+€60k at 2.5% for 3 years
+workdays until Dec 18
+next holiday

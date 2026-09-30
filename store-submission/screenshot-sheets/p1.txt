@@ -1,0 +1,13 @@
+# Munich weekend
+Flights: 2 × €149
+Hotel: 3 × $165 in EUR
+Tickets: 3 × €9.70
+Pretzels: 4 × €12.40
+sum
+Split 3 ways: prev / 3
+
+# To Salzburg
+145 km in miles
+6.4 L/100 km × 145 km
+× €1.74/L
+Leave 8:30 am + 1 h 50 min

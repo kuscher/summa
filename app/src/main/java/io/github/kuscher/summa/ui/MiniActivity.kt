@@ -40,6 +40,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.semantics.contentDescription
@@ -62,6 +67,8 @@ import kotlinx.coroutines.launch
  */
 class MiniActivity : ComponentActivity() {
     private var pinned by mutableStateOf(false)
+    /** The scratch sheet's session, for the debug hooks. */
+    var session: Session? = null
     private var autoPinTried = false
     private var onMessage: (String) -> Unit = {}
     private lateinit var captionTracker: CaptionTracker
@@ -81,11 +88,17 @@ class MiniActivity : ComponentActivity() {
                 onMessage = { m -> status = m; scope.launch { kotlinx.coroutines.delay(2600); if (status == m) status = null } }
                 val engineSettings = remember { app.prefs.state.map { app.prefs.engineSettings(it) }.stateIn(scope, SharingStarted.Eagerly, app.prefs.engineSettings()) }
                 val session = remember { Session(Library.SCRATCH, app.library.text(Library.SCRATCH), app.library, engineSettings, app.rates.rates, scope) }
+                this@MiniActivity.session = session
                 DisposableEffect(session) { onDispose { session.close() } }
                 val bar = MaterialTheme.colorScheme.surface
                 SideEffect { Caption.enable(this, bar.luminance() > 0.5f) }
                 Surface(color = MaterialTheme.colorScheme.surface) {
-                    Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))) {
+                    Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
+                        .onPreviewKeyEvent { e ->
+                            // Ctrl+Shift+M goes back, the same keys that opened the mini window.
+                            if (e.type == androidx.compose.ui.input.key.KeyEventType.KeyDown && e.isCtrlPressed && e.isShiftPressed &&
+                                e.key == androidx.compose.ui.input.key.Key.M) { backToBig(); true } else false
+                        }) {
                         Column(Modifier.fillMaxSize()) {
                             val cap = rememberCaptionInsets(captionTracker)
                             CaptionSpacer(cap, MaterialTheme.colorScheme.surface)
@@ -128,13 +141,6 @@ class MiniActivity : ComponentActivity() {
         finishAndRemoveTask()
     }
 
-    override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
-        // Ctrl+Shift+M goes back, the same keys that opened the mini window.
-        if (event.action == android.view.KeyEvent.ACTION_DOWN && event.keyCode == android.view.KeyEvent.KEYCODE_M && event.isCtrlPressed && event.isShiftPressed) {
-            backToBig(); return true
-        }
-        return super.dispatchKeyEvent(event)
-    }
 
     private fun togglePin(quiet: Boolean = false) {
         if (Build.VERSION.SDK_INT < 37) return

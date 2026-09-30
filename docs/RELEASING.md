@@ -25,6 +25,13 @@ tools/release.sh --publish  # … and push, then create the GitHub release v<ver
 `tools/release.sh` refuses to continue if the notes file is missing, the key isn't there, the APK
 isn't signed with the Summa certificate, or (with `--publish`) there are uncommitted changes.
 
+## Google Play
+
+Play takes an Android App Bundle instead of an APK: `./gradlew :app:bundleRelease` builds
+`app/build/outputs/bundle/release/app-release.aab`, signed with the same key (it serves as the
+upload key). The listing, graphics and policy answers are in `store-submission/` (see its README,
+including the one-time app-signing choice).
+
 ## Checking a release by hand
 
 ```bash

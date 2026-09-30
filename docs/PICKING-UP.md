@@ -3,7 +3,12 @@
 State and next steps, for whoever continues (human or Claude). Keep this current at every milestone.
 Read CLAUDE.md first (layout, dev loop, gotchas).
 
-## Where things are (v1.2, 2026-09-30)
+## Where things are (v1.2.2, 2026-09-30)
+- 1.2.2: licence texts in the app (assets/licenses + Settings › About › Open-source licences,
+  THIRD_PARTY_NOTICES.md), PRIVACY.md, the Google Play kit in store-submission/ (texts, graphics,
+  policy answers; `ui/Shots.kt` + `tools/store_assets.py` remake the screenshots). Answers auto-size.
+  Not yet on Play: the user needs a developer account, the app-signing choice and a 12-tester closed test.
+- 1.2.1: example sheet is a Munich weekend.
 - 1.2: the big window and the mini calculator take turns (`MainActivity.switchToMini`,
   `MiniActivity.backToBig`); the icon (1.1.1: four tangerine quadrants with + − × ÷, `tools/logo.py`)
   also appears in the app via `SummaMark`. Release steps: docs/RELEASING.md.

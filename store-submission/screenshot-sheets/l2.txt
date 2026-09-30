@@ -1,0 +1,18 @@
+# Buying a flat
+price = €420,000
+deposit = 20% of price
+borrow = price − deposit
+Monthly: loan of borrow at 3.9% for 25 years
+Taxes and notary: 6.5% of price
+Movers: €1,350 incl 19% VAT
+
+# Saving for it
+€60,000 at 2.5% for 3 years compounded monthly
+interest on €60,000 at 2.5% for 3 years
+workdays until Dec 18
+next holiday
+
+# Paint
+1 tin = 2.5 L
+walls = 4 × 3.6 m × 2.5 m
+walls × 2 coats / 10 m²/L in tins

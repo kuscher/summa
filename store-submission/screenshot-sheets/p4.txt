@@ -1,0 +1,10 @@
+# Your own words
+1 coffee = $4.50
+$20 in coffees
+tip(bill) = bill × 18%
+tip($86)
+1 tin = 2.5 L
+7.2 L in tins
+rate = $85/hour
+6.5 hours × rate
++ 20% tax

@@ -1,0 +1,34 @@
+Summa is a sheet of paper that does the maths. Write a line in plain words and the answer appears next to it, on the right. Change a number and everything that depends on it updates.
+
+Words around numbers are fine
+Lunch: $12 + 15% tip
+Flights: 2 × €149
+Hotel: 3 nights × $165 in EUR
+Summa skips the words it doesn't know and works out the rest.
+
+Units and money
+5 km in miles, 72 °F in °C, 1,200 sq ft in m², 6.4 L/100 km in mpg, $25/hour × 14 hours. Live exchange rates for 166 currencies and metals, refreshed at most twice a day, with rates built in for offline use. Crypto prices if you turn them on.
+
+Percentages, every way
+20% of $10, 5% on $30, 6% off €40, $50 as a % of $100, 20 is 10% of what.
+
+Dates, times and time zones
+days until Dec 25, next friday + 2 weeks, 8:30 am + 3 h 20 min, 3 pm Munich in Tokyo, workdays until Dec 18, next holiday. Over 6,000 cities and the usual abbreviations, all offline. Workday maths skips the public holidays of your region (22 countries).
+
+Money over time
+$10,000 at 5% for 10 years compounded monthly, loan of $300k at 6% for 30 years (the monthly payment), €1,350 incl 19% VAT, €120 without 20% VAT.
+
+Your own names, units and functions
+rate = $85/hour, then 6.5 hours × rate. Refer to a line with line6, the line above with prev, and add up a block with sum. Define 1 coffee = $4.50 or tip(bill) = bill × 18% once on the Definitions sheet and use them in every sheet.
+
+Quiet by design
+Just the sheet: text on the left, answers on the right, nothing floating over it. Click an answer to copy it; right-click it to copy the line or convert it. Suggestions appear as grey text after the cursor; Tab takes one.
+
+Made for laptops, fine on phones
+On Android laptops and in desktop windows your sheets are listed on the left, with keyboard shortcuts for everything. A mini calculator can stay on top of your other windows. Select a sum in any app and choose Calculate to see the answer right there. Export a sheet as PDF, a web page, CSV, Markdown or text, or print it.
+
+Private
+No accounts, no ads, no analytics. Your sheets stay on your device. The only thing Summa downloads is public exchange-rate tables, and it never sends anything about you or your sheets.
+
+Free and open source
+Summa is a personal hobby project by Alexander Kuscher, not affiliated with or endorsed by any employer. The code is MIT-licensed: github.com/kuscher/summa

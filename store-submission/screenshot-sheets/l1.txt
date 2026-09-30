@@ -1,0 +1,15 @@
+# Munich weekend
+Flights: 2 × €149
+Hotel: 3 nights × $165 in EUR
+MVV day tickets: 3 × €9.70
+Pretzels and beer: 4 × €12.40
+sum
+Split 3 ways: line6 / 3
+
+# Day trip to Salzburg
+distance = 145 km
+consumption = 6.4 L/100 km
+fuel = distance × consumption
+fuel × €1.74/L
+distance in miles
+Leave 8:30 am + 1 h 50 min

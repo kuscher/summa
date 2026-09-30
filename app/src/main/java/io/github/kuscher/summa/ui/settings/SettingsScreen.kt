@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -208,8 +209,14 @@ fun About() {
                 "Developed entirely on a Googlebook. Inspired by Soulver and Numi.",
             style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant,
         )
-        Text(if (credits) "Hide credits" else "Credits and licences", Modifier.padding(top = 8.dp).clickable { credits = !credits }.padding(vertical = 4.dp),
-            style = MaterialTheme.typography.labelLarge, color = scheme.primary)
+        var licences by remember { mutableStateOf(false) }
+        androidx.compose.foundation.layout.Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+            Text(if (credits) "Hide credits" else "Credits", Modifier.clickable(onClickLabel = "Show credits") { credits = !credits }.padding(vertical = 4.dp),
+                style = MaterialTheme.typography.labelLarge, color = scheme.primary)
+            Text("Open-source licences", Modifier.clickable(onClickLabel = "Show licences") { licences = true }.padding(vertical = 4.dp),
+                style = MaterialTheme.typography.labelLarge, color = scheme.primary)
+        }
+        if (licences) LicencesDialog { licences = false }
         if (credits) for (line in listOf(
             "Summa Sans and Summa Mono are Google Sans Flex and Google Sans Code (SIL Open Font License 1.1), subset for size.",
             "Icons: Material Symbols Rounded (Apache License 2.0).",
@@ -218,5 +225,41 @@ fun About() {
             "Colors: Material Color Utilities (Apache License 2.0).",
             "Summa's own code is MIT-licensed.",
         )) Text("• $line", style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 2.dp))
+    }
+}
+
+/** Every notice and full licence text shipped in assets/licenses, in one scrollable page. */
+@Composable
+private fun LicencesDialog(onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val scheme = MaterialTheme.colorScheme
+    val parts = remember {
+        listOf(
+            null to "NOTICES.txt",
+            "Apache License 2.0" to "Apache-2.0.txt",
+            "SIL Open Font License 1.1 (Summa Sans, Summa Mono)" to "OFL-GoogleSans.txt",
+            "MIT License (Summa)" to "MIT-Summa.txt",
+        ).map { (title, file) ->
+            title to (try { context.assets.open("licenses/$file").bufferedReader().use { it.readText() } } catch (_: Exception) { "" })
+        }
+    }
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(shape = RoundedCornerShape(20.dp), color = scheme.surface, modifier = Modifier.widthIn(max = 720.dp).fillMaxWidth(0.94f).fillMaxHeight(0.9f)) {
+            Column {
+                androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Open-source licences", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight(700)))
+                    Box(Modifier.size(44.dp).clip(CircleShape).clickable(onClickLabel = "Close", onClick = onDismiss).semantics { contentDescription = "Close" }, contentAlignment = Alignment.Center) {
+                        SymIcon(Sym.CLOSE, size = 20.sp, tint = scheme.onSurfaceVariant)
+                    }
+                }
+                Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
+                    for ((title, text) in parts) {
+                        if (title != null) Text(title, Modifier.padding(top = 24.dp, bottom = 8.dp), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight(700)))
+                        Text(text, style = MaterialTheme.typography.bodySmall.copy(fontFamily = io.github.kuscher.summa.ui.theme.SummaFonts.mono, fontSize = 11.5.sp, lineHeight = 16.sp),
+                            color = scheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
     }
 }

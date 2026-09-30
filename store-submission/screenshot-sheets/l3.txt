@@ -1,0 +1,15 @@
+# Units, dates and time zones
+5 km in miles
+72 °F in °C
+1,200 sq ft in m²
+6.4 L/100 km in mpg
+250 Mbps × 10 min in GB
+1 cm in px at 326 ppi
+
+days until Dec 25
+next friday + 2 weeks
+3 pm Munich in Tokyo
+2:30 pm HKT in Berlin
+week number
+0x9F31 to decimal
+average of 36, 42, 19 and 81

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.2 (2026-09-30)
+
+- **Open-source licences in the app:** Settings › About › Open-source licences lists everything
+  Summa includes (AndroidX, Compose, Kotlin, Material Symbols under Apache 2.0; the fonts under the
+  SIL Open Font License; GeoNames under CC BY 4.0; ECB and CoinGecko data) with the full licence
+  texts. The same list is in THIRD_PARTY_NOTICES.md.
+- **Long answers fit on phones:** they shrink a little instead of being cut off with "…".
+- A privacy policy (PRIVACY.md) and a Google Play submission kit (store-submission/).
+
 ## 1.2.1 (2026-09-30)
 
 - The example sheet for new installs is now a **Munich weekend**: flights, a hotel paid in dollars,

@@ -9,7 +9,7 @@ VERSION=$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts)
 NOTES=docs/release-notes/$VERSION.md
 [ -f "$NOTES" ] || { echo "missing $NOTES"; exit 1; }
 [ -f ~/.config/summa/keystore.jks ] || { echo "no release key in ~/.config/summa"; exit 1; }
-./gradlew :engine:test :app:assembleRelease --console=plain -q
+./gradlew :engine:test :app:lintRelease :app:assembleRelease --console=plain -q
 OUT=executables/release-$VERSION
 mkdir -p "$OUT"
 cp app/build/outputs/apk/release/app-release.apk "$OUT/Summa.apk"

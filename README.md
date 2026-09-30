@@ -76,6 +76,13 @@ Lime and Berry), light and dark.
 
 ## Made for the Googlebook
 
+<p align="center">
+  <img src="docs/images/mini.png" width="330" alt="The mini calculator: a small window with a few quick sums, its keep-on-top pin switched on">
+  &nbsp;&nbsp;
+  <img src="docs/images/calculate.png" width="420" alt="The Calculate card: Hotel: 3 nights × $165 in EUR is €435.39, with Open in Summa, Insert answer and Copy">
+  <br><sub>The mini calculator, pinned on top of your other windows, and Calculate on a selection in any app.</sub>
+</p>
+
 - **One calm bar on top.** The window's own title bar (app handle, window buttons) is painted to
   match Summa's header just below it, with the sheet title, the mini calculator, Share and ⋮.
 - **A mini calculator that stays on top.** Open it from the header or Ctrl+Shift+M and the big
@@ -89,6 +96,10 @@ Lime and Berry), light and dark.
 - **Keyboard first**, with every shortcut listed in the system's shortcut helper (Search+/).
 - **Handoff:** start a sheet on your phone and carry on at the Googlebook (Android 17).
 - **Phones too:** the same quiet sheet with the system keyboard, and your sheets one tap away.
+
+<p align="center">
+  <img src="docs/images/phone.png" width="300" alt="Summa on a phone: the Munich weekend sheet with answers on the right">
+</p>
 
 ## What you can type
 
@@ -155,7 +166,8 @@ only while *Settings › Money › Live exchange rates* is on:
   [European Central Bank](https://www.ecb.europa.eu)'s daily rates as a fallback;
 - crypto prices from [CoinGecko](https://www.coingecko.com) only if you turn on *Crypto prices*.
 
-Nothing is ever uploaded: the requests carry no sheet content, account or device ID. With the switch
+Nothing is ever uploaded: the requests carry no sheet content, account or device ID. The full
+[privacy policy](PRIVACY.md) says the same in more words. With the switch
 off, Summa uses the rates bundled in the app (and whatever it downloaded last), and works fully offline.
 City and time-zone lookups are offline too.
 
@@ -204,7 +216,9 @@ by or affiliated with Acqualia (Soulver) or Numi's maker.
 
 ## License
 
-Summa is free software under the [MIT License](LICENSE). It includes:
+Summa is free software under the [MIT License](LICENSE). It includes the following, listed with
+their licences in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and in the app (Settings ›
+About › Open-source licences), which also shows the full licence texts:
 
 - **Summa Sans** and **Summa Mono**: Google Sans Flex and Google Sans Code, subset and renamed as
   the [SIL Open Font License 1.1](app/src/main/assets/licenses/OFL-GoogleSans.txt) allows.
@@ -212,4 +226,8 @@ Summa is free software under the [MIT License](LICENSE). It includes:
 - Exchange rates from the European Central Bank (source: ECB), bundled for offline use.
 - City data from [GeoNames](https://www.geonames.org) (CC BY 4.0): cities of 100,000+ people and capitals.
 
-It uses Jetpack Compose, AndroidX, Kotlin and kotlinx.serialization (Apache License 2.0).
+It uses Jetpack Compose, AndroidX, Kotlin, kotlinx.coroutines and kotlinx.serialization (Apache
+License 2.0, [full text](app/src/main/assets/licenses/Apache-2.0.txt)).
+
+A kit for publishing on Google Play (listing text, graphics, policy answers) is in
+[store-submission/](store-submission).
