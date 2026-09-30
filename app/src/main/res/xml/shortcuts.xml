@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher shortcuts (right-click Summa in the launcher or taskbar). -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="new" android:enabled="true" android:icon="@drawable/sym_add"
+        android:shortcutShortLabel="@string/shortcut_new" android:shortcutLongLabel="@string/shortcut_new_long">
+        <intent android:action="io.github.kuscher.summa.NEW_SHEET"
+            android:targetPackage="io.github.kuscher.summa" android:targetClass="io.github.kuscher.summa.ui.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="mini" android:enabled="true" android:icon="@drawable/sym_picture_in_picture_alt"
+        android:shortcutShortLabel="@string/shortcut_mini" android:shortcutLongLabel="@string/shortcut_mini_long">
+        <intent android:action="io.github.kuscher.summa.MINI"
+            android:targetPackage="io.github.kuscher.summa" android:targetClass="io.github.kuscher.summa.ui.MiniLauncher" />
+    </shortcut>
+</shortcuts>

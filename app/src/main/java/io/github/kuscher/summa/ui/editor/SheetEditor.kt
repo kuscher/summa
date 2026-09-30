@@ -6,6 +6,7 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.draganddrop.dragAndDropSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Box
@@ -145,6 +146,7 @@ fun SheetEditor(
     compact: Boolean = false,
     onInsert: (String) -> Unit = {},
     onMessage: (String) -> Unit = {},
+    keypadOpen: Boolean = false,
 ) {
     val c = LocalSummaColors.current
     val ev = session.evaluated
@@ -229,6 +231,8 @@ fun SheetEditor(
                 }
             }
             val focusReq = remember { androidx.compose.ui.focus.FocusRequester() }
+            val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+            LaunchedEffect(keypadOpen) { if (keypadOpen) { runCatching { focusReq.requestFocus() }; keyboard?.hide() } else if (focused) keyboard?.show() }
             io.github.kuscher.summa.ui.DebugHooks.focus = { runCatching { focusReq.requestFocus() } }
             Box(Modifier.weight(1f).padding(end = 12.dp).zIndex(5f)) {
             BasicTextField(
@@ -251,7 +255,8 @@ fun SheetEditor(
                 outputTransformation = syntax,
                 onTextLayout = { get -> layout = get() },
                 lineLimits = TextFieldLineLimits.MultiLine(),
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false, keyboardType = KeyboardType.Text),
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false, keyboardType = KeyboardType.Text,
+                    showKeyboardOnFocus = !keypadOpen),
             )
             val l = layout
             if (showAc && l != null && sel.start <= l.layoutInput.text.length) {
@@ -401,6 +406,13 @@ private fun Answer(
                 .background(bg)
                 .hoverable(hover)
                 .onSecondaryClick { menu = true }
+                // Drag an answer into another app or window.
+                .dragAndDropSource { _ ->
+                    androidx.compose.ui.draganddrop.DragAndDropTransferData(
+                        android.content.ClipData.newPlainText("Summa answer", answer),
+                        flags = android.view.View.DRAG_FLAG_GLOBAL,
+                    )
+                }
                 .clickable {
                     copyToClipboard(context, answer)
                     onMessage("Copied $answer")

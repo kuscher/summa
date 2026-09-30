@@ -50,14 +50,14 @@ import io.github.kuscher.summa.ui.SymIcon
 import io.github.kuscher.summa.ui.theme.schemeFor
 
 @Composable
-fun SettingsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
+fun SettingsScreen(onBack: () -> Unit, modifier: Modifier = Modifier, showHeader: Boolean = true) {
     val app = SummaApp.instance
     val s by app.prefs.state.collectAsState()
     val rates by app.rates.rates.collectAsState()
     val scheme = MaterialTheme.colorScheme
     fun set(f: (Settings) -> Settings) = app.prefs.update(f)
     Column(modifier.fillMaxSize().background(scheme.surface)) {
-        Header("Settings", onBack)
+        if (showHeader) Header("Settings", onBack)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 40.dp).widthIn(max = 720.dp)) {
             Group("Look") {
                 Text("Colors", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(bottom = 10.dp))
@@ -89,6 +89,15 @@ fun SettingsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     Row(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                         SymIcon(Sym.REFRESH, size = 18.sp, tint = scheme.onSecondaryContainer)
                         Text("Update rates now", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelLarge, color = scheme.onSecondaryContainer)
+                    }
+                }
+            }
+            Group("Mini calculator") {
+                SwitchRow("Keep the mini calculator on top", "On Googlebooks the mini window stays above other windows, parked bottom-right. Open it from the Quick Settings tile, the launcher, or Ctrl+Shift+M.", s.miniOnTop) { v -> set { it.copy(miniOnTop = v) } }
+                Surface(onClick = { io.github.kuscher.summa.ui.MainActivity.openMini(app) }, shape = CircleShape, color = scheme.secondaryContainer, modifier = Modifier.padding(top = 6.dp)) {
+                    Row(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        SymIcon(Sym.PICTURE_IN_PICTURE_ALT, size = 18.sp, tint = scheme.onSecondaryContainer)
+                        Text("Open the mini calculator", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelLarge, color = scheme.onSecondaryContainer)
                     }
                 }
             }

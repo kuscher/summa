@@ -127,7 +127,7 @@ fun Sidebar(
     var sel by remember { mutableStateOf<SideSel>(SideSel.Sheets) }
     var newFolder by remember { mutableStateOf(false) }
     val q = search.text.toString()
-    val live = index.sheets.filter { it.trashedAt == null }
+    val live = index.sheets.filter { it.trashedAt == null && it.id != Library.SCRATCH }
     Column(modifier.fillMaxHeight().background(if (compact) scheme.surface else scheme.surfaceContainerLow).padding(horizontal = 12.dp)) {
         Spacer(Modifier.height(10.dp))
         SearchField(search, focus = searchFocus)

@@ -34,6 +34,8 @@ data class Settings(
     val dollar: String = "auto",
     val firstRunDone: Boolean = false,
     val sidebar: Boolean = true,
+    /** The mini calculator asks to stay above other windows when it opens (Android 17 desktops). */
+    val miniOnTop: Boolean = true,
 )
 
 class Prefs(private val context: Context) {
@@ -59,6 +61,7 @@ class Prefs(private val context: Context) {
         dollar = sp.getString("dollar", "auto")!!,
         firstRunDone = sp.getBoolean("firstRunDone", false),
         sidebar = sp.getBoolean("sidebar", true),
+        miniOnTop = sp.getBoolean("miniOnTop", true),
     )
 
     fun update(f: (Settings) -> Settings) {
@@ -69,7 +72,7 @@ class Prefs(private val context: Context) {
             .putBoolean("thousands", s.thousands).putBoolean("degrees", s.degrees).putBoolean("mono", s.mono)
             .putBoolean("slashedZero", s.slashedZero).putBoolean("onlineRates", s.onlineRates).putBoolean("crypto", s.crypto)
             .putString("numberFormat", s.numberFormat).putString("dollar", s.dollar).putBoolean("firstRunDone", s.firstRunDone)
-            .putBoolean("sidebar", s.sidebar)
+            .putBoolean("sidebar", s.sidebar).putBoolean("miniOnTop", s.miniOnTop)
             .apply()
         _state.value = s
     }

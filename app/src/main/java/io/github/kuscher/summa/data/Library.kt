@@ -132,13 +132,26 @@ class Library(context: Context) {
     fun search(query: String): List<SheetMeta> {
         val words = query.lowercase().split(' ').filter { it.isNotBlank() }
         if (words.isEmpty()) return emptyList()
-        return _state.value.sheets.filter { it.trashedAt == null }.filter { m ->
+        return _state.value.sheets.filter { it.trashedAt == null && it.id != SCRATCH }.filter { m ->
             val hay = (m.title + "\n" + text(m.id)).lowercase()
             words.all { it in hay }
         }.sortedByDescending { it.updated }
     }
 
+    /** The mini calculator's scratch sheet: a normal file, hidden from the sheet list. */
+    fun scratch(): SheetMeta {
+        get(SCRATCH)?.let { return it }
+        val now = System.currentTimeMillis()
+        val text = "// Mini calculator: quick sums that stay on top.\n"
+        val meta = SheetMeta(SCRATCH, created = now, updated = now, title = "Scratch")
+        atomicWrite(file(SCRATCH), text)
+        edit { it.copy(sheets = it.sheets + meta) }
+        return meta
+    }
+
     companion object {
+        const val SCRATCH = "scratch"
+
         fun titleOf(text: String): String {
             val first = text.lineSequence().map { it.trim() }.firstOrNull { it.isNotEmpty() } ?: return ""
             return first.trimStart('#', ' ').removePrefix("//").trim().take(80)
