@@ -4,7 +4,8 @@ State and next steps, for whoever continues (human or Claude). Keep this current
 Read CLAUDE.md first (layout, dev loop, gotchas).
 
 ## Where things are (v1.3.5 in main, 2026-10-01)
-- 1.3.5 (code 15): the user reported "opening a new tab doesn't let me edit anything inside it and no
+- 1.3.5 (code 15; released 2026-10-01 with the tag `v1.3.5`: on GitHub, and on Google Play's
+  closed-testing track as a draft that still has to be sent for review in the Play Console): the user reported "opening a new tab doesn't let me edit anything inside it and no
   cursor is seen" (Play install). Cause: Compose (ui 1.13 alpha, `AutoClearFocusBehavior.CursorBased`
   by default) clears the focus when a mouse or trackpad is pressed outside the focused node, and the
   sheet's text field was only as tall as its text, so one click on the empty page of a new sheet took
