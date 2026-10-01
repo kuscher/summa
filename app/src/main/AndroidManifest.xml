@@ -9,10 +9,10 @@
     <!-- Summa works with a keyboard and a mouse or trackpad alone: laptops and desktops without a
          touchscreen can install it. -->
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
-    <!-- Google Play offers Summa only to devices that say they are a PC: Googlebooks and other
-         desktop-class Android devices. Android itself doesn't check this, so the APK from GitHub
-         still installs on phones and tablets. -->
-    <uses-feature android:name="android.hardware.type.pc" android:required="true" />
+    <!-- Summa is made for Googlebooks (PC-type devices) and also runs on phones and tablets, so the
+         PC feature is declared but not required: Google Play offers Summa to all of them. (1.3.3
+         required it, which took Summa away from phones on Play.) -->
+    <uses-feature android:name="android.hardware.type.pc" android:required="false" />
 
     <application
         android:name=".SummaApp"

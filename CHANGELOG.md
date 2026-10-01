@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.4 (2026-10-01)
+
+- **Summa is on phones and tablets again on Google Play.** 1.3.3 limited the Play listing to
+  Googlebooks and other desktop-class devices; Summa works well on phones, so that limit is gone.
+  Nothing changes in the app.
+
 ## 1.3.3 (2026-10-01)
 
 - **On Google Play, Summa is now for Googlebooks and other desktop-class Android devices only**

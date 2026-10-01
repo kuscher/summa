@@ -3,7 +3,10 @@
 State and next steps, for whoever continues (human or Claude). Keep this current at every milestone.
 Read CLAUDE.md first (layout, dev loop, gotchas).
 
-## Where things are (v1.3.3 in main, 2026-10-01)
+## Where things are (v1.3.4 in main, 2026-10-01)
+- 1.3.4 (code 14): `android.hardware.type.pc` is back to `required="false"`. The user, the same day: "make
+  summa actually available on phones too since that works". Only the manifest changed again. On Play the
+  ChromeOS devices excluded by hand for 1.3.3 were included again (Device catalog).
 - 1.3.3 (code 13): only the manifest changed. `android.hardware.type.pc` is `required="true"`, so Google
   Play offers Summa only to PC-type devices (Googlebooks report it; the user asked for Play to target
   Googlebooks, or at least desktop Android devices, before production). Android doesn't enforce the
