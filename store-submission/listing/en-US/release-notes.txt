@@ -1,1 +1,1 @@
-The mini calculator now shows the sheet you're on, buttons show a label when you rest the pointer on them, and Settings lists every open-source licence.
+Start typing as soon as a sheet opens, Esc clears the search and leaves Settings, and Summa no longer asks for a touchscreen, so keyboard-and-mouse laptops can install it.

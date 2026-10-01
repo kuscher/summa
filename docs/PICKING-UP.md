@@ -3,7 +3,13 @@
 State and next steps, for whoever continues (human or Claude). Keep this current at every milestone.
 Read CLAUDE.md first (layout, dev loop, gotchas).
 
-## Where things are (v1.3, 2026-09-30)
+## Where things are (v1.3.2 in main, 2026-10-01)
+- 1.3.2 (in main; release it with the new signing key, see docs/RELEASING.md): the sheet takes
+  focus on open when a hardware keyboard is present (`SheetEditor` LaunchedEffect; phones only for
+  an empty sheet), Esc clears/leaves search and leaves Settings, and the manifest declares
+  `android.hardware.touchscreen` not required. These came from checking Summa against the adaptive
+  app quality guidelines for Play's "Desktop optimized" badge; the user declined 48dp targets,
+  Ctrl+wheel zoom, scrollbars, file handlers and requestFullscreenMode ("makes little sense").
 - 1.3: the mini window shows the current sheet via the shared `Sessions` hub (the old scratch
   sheet file stays hidden and unused); hover tooltips (`HoverTip`) on icon buttons.
 - 1.2.2: licence texts in the app (assets/licenses + Settings › About › Open-source licences,

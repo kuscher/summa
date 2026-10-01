@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.2 (2026-10-01)
+
+Small things that make Summa behave like a desktop app.
+
+- **Start typing right away:** with a keyboard attached, the cursor is in the sheet as soon as it
+  opens (a new sheet, another sheet from the list, back from Settings). On phones only a new, empty
+  sheet takes the cursor, so reading a sheet doesn't pop up the keyboard.
+- **Esc does what you'd expect:** in the search field it clears the search, and once more goes back
+  to the sheet; in Settings it goes back to the sheet.
+- Summa now says it doesn't need a touchscreen, so laptops and desktops with only a keyboard and
+  mouse or trackpad can install it from Google Play.
+
 ## 1.3.1 (2026-09-30)
 
 - Fixed: an answer could keep showing its previous value until something else redrew the sheet,

@@ -238,6 +238,9 @@ fun App(activity: MainActivity, requested: String?) {
         var deleted by remember { mutableStateOf<SheetMeta?>(null) }
         val search = rememberTextFieldState()
         val searchFocus = remember { FocusRequester() }
+        val editorFocus = remember { FocusRequester() }
+        // Esc in the search field: back to the sheet.
+        val leaveSearch = { runCatching { editorFocus.requestFocus() }; Unit }
         val sidebarShown = settings.sidebar
         val chrome = MaterialTheme.colorScheme.surfaceContainerLow
         SideEffect { Caption.enable(activity, chrome.luminance() > 0.5f) }
@@ -302,6 +305,8 @@ fun App(activity: MainActivity, requested: String?) {
                                 session?.let { moveLine(it, if (e.key == Key.DirectionUp) -1 else 1) }; true
                             }
                             ctrl && e.key == Key.B -> { app.prefs.update { it.copy(sidebar = !it.sidebar) }; true }
+                            // Esc closes Settings (menus and dialogs handle their own Esc first).
+                            e.key == Key.Escape && screen == "settings" -> { screen = "sheet"; true }
                             ctrl && e.key == Key.P -> { session?.let { Export.print(activity, SheetSnapshot.of(it)) }; true }
                             else -> false
                         }
@@ -332,13 +337,13 @@ fun App(activity: MainActivity, requested: String?) {
                                 }
                             }
                             Row(Modifier.weight(1f)) {
-                                if (sidebarShown) Sidebar(app.library, index, id, search, searchFocus, actions, ::newSheet, deleted, ::undoDelete, Modifier.width(256.dp))
+                                if (sidebarShown) Sidebar(app.library, index, id, search, searchFocus, actions, ::newSheet, deleted, ::undoDelete, Modifier.width(256.dp), onLeaveSearch = leaveSearch)
                                 val mod = Modifier.weight(1f)
                                 when {
                                     screen == "settings" -> SettingsScreen(onBack = { screen = "sheet" }, modifier = mod, showHeader = false,
                                         onOpenDefinitions = { open(app.library.definitions().id) })
                                     session == null -> EmptyState(mod) { newSheet() }
-                                    else -> EditorPane(session, true, mod, onMessage = ::message)
+                                    else -> EditorPane(session, true, mod, onMessage = ::message, focus = editorFocus)
                                 }
                             }
                         }
@@ -357,7 +362,7 @@ fun App(activity: MainActivity, requested: String?) {
                                     SheetHeader(session, meta, status, onBack = { showList = true }, onToggleSidebar = null, onSettings = { screen = "settings" },
                                         onMessage = ::message, onNew = ::newSheet, onDelete = ::delete, onNewWindow = null, onMini = null)
                                 }
-                                EditorPane(session, false, Modifier.weight(1f), onMessage = ::message)
+                                EditorPane(session, false, Modifier.weight(1f), onMessage = ::message, focus = editorFocus)
                             }
                         }
                     }
@@ -527,7 +532,7 @@ fun moveLine(s: Session, dir: Int) {
 
 /** The sheet, and nothing over it. */
 @Composable
-fun EditorPane(session: Session, wide: Boolean, modifier: Modifier, onMessage: (String) -> Unit, mini: Boolean = false) {
+fun EditorPane(session: Session, wide: Boolean, modifier: Modifier, onMessage: (String) -> Unit, mini: Boolean = false, focus: FocusRequester? = null) {
     val app = SummaApp.instance
     val settings by app.prefs.state.collectAsState()
     val scroll = rememberScrollState()
@@ -536,7 +541,7 @@ fun EditorPane(session: Session, wide: Boolean, modifier: Modifier, onMessage: (
         SheetEditor(
             session, settings, scroll = scroll, compact = compact,
             contentPadding = PaddingValues(start = if (compact) 18.dp else 40.dp, end = if (compact) 14.dp else 36.dp, top = if (compact) 8.dp else 14.dp, bottom = 80.dp),
-            onMessage = onMessage,
+            onMessage = onMessage, focusRequester = focus,
         )
     }
 }

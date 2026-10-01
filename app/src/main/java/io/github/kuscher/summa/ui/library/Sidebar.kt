@@ -38,6 +38,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
@@ -83,7 +88,7 @@ class SheetActions(
 )
 
 @Composable
-fun SearchField(state: TextFieldState, modifier: Modifier = Modifier, focus: FocusRequester? = null) {
+fun SearchField(state: TextFieldState, modifier: Modifier = Modifier, focus: FocusRequester? = null, onLeave: () -> Unit = {}) {
     val scheme = MaterialTheme.colorScheme
     Row(
         modifier.height(36.dp).clip(RoundedCornerShape(10.dp)).background(scheme.surfaceContainer).padding(horizontal = 10.dp),
@@ -95,7 +100,14 @@ fun SearchField(state: TextFieldState, modifier: Modifier = Modifier, focus: Foc
             BasicTextField(
                 state = state, lineLimits = TextFieldLineLimits.SingleLine, cursorBrush = SolidColor(scheme.primary),
                 textStyle = MaterialTheme.typography.bodyMedium.copy(color = scheme.onSurface),
-                modifier = Modifier.fillMaxWidth().let { if (focus != null) it.focusRequester(focus) else it }.semantics { contentDescription = "Search sheets" },
+                modifier = Modifier.fillMaxWidth().let { if (focus != null) it.focusRequester(focus) else it }.semantics { contentDescription = "Search sheets" }
+                    // Esc clears the search; Esc again leaves the field.
+                    .onPreviewKeyEvent { e ->
+                        if (e.type == KeyEventType.KeyDown && e.key == Key.Escape) {
+                            if (state.text.isNotEmpty()) state.edit { replace(0, length, "") } else onLeave()
+                            true
+                        } else false
+                    },
             )
         }
     }
@@ -125,12 +137,13 @@ fun UndoRow(deleted: SheetMeta, onUndo: () -> Unit, modifier: Modifier = Modifie
 fun Sidebar(
     library: Library, index: LibraryIndex, current: String?, search: TextFieldState, searchFocus: FocusRequester,
     actions: SheetActions, onNew: () -> Unit, deleted: SheetMeta?, onUndo: () -> Unit, modifier: Modifier = Modifier,
+    onLeaveSearch: () -> Unit = {},
 ) {
     val scheme = MaterialTheme.colorScheme
     val q = search.text.toString()
     Column(modifier.fillMaxHeight().background(scheme.surfaceContainerLow).padding(horizontal = 10.dp)) {
         Row(Modifier.padding(top = 6.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            SearchField(search, Modifier.weight(1f), searchFocus)
+            SearchField(search, Modifier.weight(1f), searchFocus, onLeaveSearch)
             IconBtn(Sym.ADD, "New sheet", shortcut = "Ctrl+N", onClick = onNew)
         }
         val sheets = visibleSheets(library, index, q)
@@ -201,7 +214,7 @@ fun PhoneList(
                 }
             }
         }
-        if (searching) SearchField(search, Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), searchFocus)
+        if (searching) SearchField(search, Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), searchFocus, onLeave = { searching = false })
         val sheets = visibleSheets(library, index, search.text.toString())
         LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
             if (deleted != null) item(key = "undo") { UndoRow(deleted, onUndo, Modifier.padding(bottom = 6.dp)) }

@@ -145,6 +145,8 @@ fun SheetEditor(
     contentPadding: PaddingValues = PaddingValues(0.dp),
     compact: Boolean = false,
     onMessage: (String) -> Unit = {},
+    /** Lets the window send the cursor back to the sheet (after Esc in search, for example). */
+    focusRequester: androidx.compose.ui.focus.FocusRequester? = null,
 ) {
     val c = LocalSummaColors.current
     val ev = session.evaluated
@@ -245,8 +247,15 @@ fun SheetEditor(
             }
             val measurer = rememberTextMeasurer()
             val ghostColor = c.comment
-            val focusReq = remember { androidx.compose.ui.focus.FocusRequester() }
+            val focusReq = focusRequester ?: remember { androidx.compose.ui.focus.FocusRequester() }
             io.github.kuscher.summa.ui.DebugHooks.focus = { runCatching { focusReq.requestFocus() } }
+            // Start typing right away: with a hardware keyboard the cursor is in the sheet as soon
+            // as it opens. On touch devices only an empty (new) sheet takes focus, so opening a
+            // sheet to read it doesn't pop up the on-screen keyboard.
+            val hardwareKeyboard = androidx.compose.ui.platform.LocalConfiguration.current.keyboard == android.content.res.Configuration.KEYBOARD_QWERTY
+            androidx.compose.runtime.LaunchedEffect(session.id, hardwareKeyboard) {
+                if (hardwareKeyboard || session.state.text.isEmpty()) runCatching { focusReq.requestFocus() }
+            }
             BasicTextField(
                 state = session.state,
                 modifier = Modifier.weight(1f).padding(end = 16.dp).focusRequester(focusReq).semantics { contentDescription = "Sheet" }

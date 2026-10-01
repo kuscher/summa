@@ -153,6 +153,7 @@ To update, install a newer `Summa.apk` over the old one. Your sheets stay.
 | Ctrl+B | Show or hide the sheet list |
 | Ctrl+, | Settings |
 | Ctrl+P | Print, or save as PDF |
+| Esc | Clear the search, then back to the sheet; leave Settings |
 | Tab or → / Esc | Take or hide the grey suggestion after the cursor |
 
 ## Privacy
