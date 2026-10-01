@@ -5,7 +5,7 @@ Read CLAUDE.md first (layout, dev loop, gotchas).
 
 ## Where things are (v1.3.2 in main, 2026-10-01)
 - 1.3.2 (code 12; on Google Play's closed-testing track, sent for review 2026-10-01 from the Mac with the new key; NOT yet
-  released on GitHub: do that with the same key, see docs/RELEASING.md): the sheet takes
+  released on GitHub: push the tag `v1.3.2` and the release workflow does it, see docs/RELEASING.md): the sheet takes
   focus on open when a hardware keyboard is present (`SheetEditor` LaunchedEffect; phones only for
   an empty sheet), Esc clears/leaves search and leaves Settings, and the manifest declares
   `android.hardware.touchscreen` not required. These came from checking Summa against the adaptive
