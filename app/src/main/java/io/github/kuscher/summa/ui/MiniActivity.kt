@@ -6,7 +6,6 @@ import android.os.Build
 import android.os.Bundle
 import android.os.OutcomeReceiver
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -79,7 +78,7 @@ class MiniActivity : ComponentActivity() {
         captionTracker = CaptionTracker(this)
         val app = SummaApp.instance
         sheetId = pickSheet(intent)
-        setContent {
+        setSummaContent {
             val settings by app.prefs.state.collectAsState()
             val scope = rememberCoroutineScope()
             SummaTheme(settings) {

@@ -1,1 +1,1 @@
-Start typing as soon as a sheet opens, and Esc clears the search and leaves Settings. Summa no longer asks for a touchscreen, so keyboard-and-mouse laptops can install it.
+Fixed: with a mouse or trackpad, clicking the empty part of a sheet took the cursor away, so a new sheet could be left with nothing to type into. The cursor now stays in the sheet, and a click anywhere on the page puts it in the text.

@@ -17,7 +17,6 @@ import android.view.KeyboardShortcutInfo
 import android.view.Menu
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -117,7 +116,7 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= 37) {
             try { setHandoffEnabled(true, HandoffActivityParams.Builder().build()) } catch (_: Throwable) {}
         }
-        setContent { App(this, requested) }
+        setSummaContent { App(this, requested) }
     }
 
     /** Which sheet an intent asks for: a sheet id, shared text, a handoff, or "new sheet". */

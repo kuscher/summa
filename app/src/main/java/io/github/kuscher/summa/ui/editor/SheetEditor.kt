@@ -4,6 +4,7 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.draganddrop.dragAndDropSource
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -41,6 +43,9 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
@@ -202,7 +207,37 @@ fun SheetEditor(
             (bucket - view).toFloat() to (bucket + 2 * view + 512).toFloat()
         }
     }
-    Box(modifier.fillMaxSize().verticalScroll(scroll)) {
+    val focusReq = focusRequester ?: remember { androidx.compose.ui.focus.FocusRequester() }
+    // Where the page and the text field are, for clicks that land beside or below the text.
+    val coords = remember { PageCoords() }
+    // The text field is at least as tall as the page, so a click, a right-click or a drag
+    // anywhere below the last line is a click in the text (the cursor goes to the end).
+    // (In whole pixels, so the page isn't a pixel taller than the window and doesn't scroll.)
+    val pageHeight = with(density) {
+        (scroll.viewportSize - contentPadding.calculateTopPadding().roundToPx() - contentPadding.calculateBottomPadding().roundToPx()).coerceAtLeast(0).toDp()
+    }
+    Box(
+        modifier.fillMaxSize()
+            .onGloballyPositioned { coords.page = it }
+            // The rest of the page (margins, line numbers, the space around the answers): the
+            // cursor goes to the nearest place in the text. Clicks in the text field are its own.
+            .pointerInput(session, focusReq) {
+                detectTapGestures { tap ->
+                    val page = coords.page?.takeIf { it.isAttached } ?: return@detectTapGestures
+                    val field = coords.field?.takeIf { it.isAttached } ?: return@detectTapGestures
+                    val at = field.localPositionOf(page, tap)
+                    val w = field.size.width.toFloat()
+                    val h = field.size.height.toFloat()
+                    if (at.x in 0f..w && at.y in 0f..h) return@detectTapGestures
+                    layout?.let { l ->
+                        val offset = l.getOffsetForPosition(Offset(at.x.coerceIn(0f, w), at.y.coerceIn(0f, h)))
+                        session.state.edit { selection = TextRange(offset.coerceIn(0, length)) }
+                    }
+                    runCatching { focusReq.requestFocus() }
+                }
+            }
+            .verticalScroll(scroll),
+    ) {
         Row(Modifier.fillMaxWidth().padding(contentPadding)) {
             if (gutter > 0.dp) Box(Modifier.width(gutter)) {
                 val l = layout
@@ -247,7 +282,6 @@ fun SheetEditor(
             }
             val measurer = rememberTextMeasurer()
             val ghostColor = c.comment
-            val focusReq = focusRequester ?: remember { androidx.compose.ui.focus.FocusRequester() }
             io.github.kuscher.summa.ui.DebugHooks.focus = { runCatching { focusReq.requestFocus() } }
             // Start typing right away: with a hardware keyboard the cursor is in the sheet as soon
             // as it opens. On touch devices only an empty (new) sheet takes focus, so opening a
@@ -258,7 +292,8 @@ fun SheetEditor(
             }
             BasicTextField(
                 state = session.state,
-                modifier = Modifier.weight(1f).padding(end = 16.dp).focusRequester(focusReq).semantics { contentDescription = "Sheet" }
+                modifier = Modifier.weight(1f).padding(end = 16.dp).heightIn(min = pageHeight).onGloballyPositioned { coords.field = it }
+                    .focusRequester(focusReq).semantics { contentDescription = "Sheet" }
                     .onFocusChanged { focused = it.isFocused }
                     .onPreviewKeyEvent { e ->
                         if (ghost == null || e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
@@ -289,6 +324,12 @@ fun SheetEditor(
             Answers(session, layout, starts, answerWidth, settings, onMessage, visible)
         }
     }
+}
+
+/** The page's and the text field's coordinates (not state: they change on every scroll). */
+private class PageCoords {
+    var page: LayoutCoordinates? = null
+    var field: LayoutCoordinates? = null
 }
 
 /** Rewrites line [index] to end in "in <target>", replacing a conversion that's already there. */

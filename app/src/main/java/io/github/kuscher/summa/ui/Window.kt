@@ -2,15 +2,32 @@ package io.github.kuscher.summa.ui
 
 import android.app.Activity
 import android.os.Build
+import android.view.ViewGroup
 import android.view.WindowInsetsController
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.captionBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.platform.AutoClearFocusBehavior
+import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+
+/**
+ * `setContent` for Summa's windows, with one difference: the cursor stays in the sheet. Compose's
+ * default takes the focus away from a text field when a mouse or trackpad is pressed anywhere
+ * outside it (a button, an answer, the empty page), which left the sheet without a cursor and
+ * nothing to type into. Here the focus only moves when something else takes it (the search field).
+ */
+fun ComponentActivity.setSummaContent(content: @Composable () -> Unit) {
+    val view = ComposeView(this)
+    view.autoClearFocusBehavior = AutoClearFocusBehavior.None
+    view.setContent(content)
+    setContentView(view, ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+}
 
 /**
  * Desktop windows (Googlebook OS, Android 15+): Summa draws its own header into the window's

@@ -64,6 +64,11 @@ Android 12+. Plain APK, Kotlin + Jetpack Compose, Material 3 Expressive (materia
   transparent caption area the header's colour and `HeaderRow` sits right below it.
 
 ## Gotchas
+- Focus and the mouse: Compose clears the focus when a mouse or trackpad is pressed outside the
+  focused node (`ComposeView.autoClearFocusBehavior`, on by default; touch doesn't). Summa turns it
+  off in `setSummaContent` (ui/Window.kt): use that, not `setContent`, for any window with a sheet.
+  Test focus with `input mouse tap X Y` (when the user is idle), not only with touch taps or the
+  debug hooks, which never trigger it.
 - `BigDecimal.sqrt()`/`BigInteger.sqrt()` are API 33: don't use them (minSdk 31). `Num` has its own roots.
 - In composables, no early `return@Box` from content lambdas (Compose start/end imbalance crash).
 - Text needs a `Surface` above it for the right content colour in dark mode.

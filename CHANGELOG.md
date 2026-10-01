@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.5 (2026-10-01)
+
+- **Fixed: a sheet you couldn't type in.** With a mouse or trackpad, a click anywhere outside the
+  text (the empty part of the page, an answer, a button) took the cursor out of the sheet, and
+  clicking the empty page didn't bring it back. A new sheet is all empty page, so it was easy to
+  end up with no cursor and nowhere to type.
+- **The cursor stays in the sheet** when you click an answer to copy it, a button or the sheet list.
+- **Click anywhere on the page to type there:** below the last line, in the margins or next to an
+  answer, the cursor goes to the nearest place in the text.
+
 ## 1.3.4 (2026-10-01)
 
 - **Summa is on phones and tablets again on Google Play.** 1.3.3 limited the Play listing to

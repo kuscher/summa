@@ -3,7 +3,16 @@
 State and next steps, for whoever continues (human or Claude). Keep this current at every milestone.
 Read CLAUDE.md first (layout, dev loop, gotchas).
 
-## Where things are (v1.3.4 in main, 2026-10-01)
+## Where things are (v1.3.5 in main, 2026-10-01)
+- 1.3.5 (code 15): the user reported "opening a new tab doesn't let me edit anything inside it and no
+  cursor is seen" (Play install). Cause: Compose (ui 1.13 alpha, `AutoClearFocusBehavior.CursorBased`
+  by default) clears the focus when a mouse or trackpad is pressed outside the focused node, and the
+  sheet's text field was only as tall as its text, so one click on the empty page of a new sheet took
+  the cursor away and no click there brought it back. Touch taps never did this, which is why it
+  went unnoticed. Three changes: `setSummaContent` (ui/Window.kt) turns the auto-clear off for the
+  big and the mini window; the text field is at least as tall as the page (`heightIn(min = pageHeight)`
+  in `SheetEditor`); and a tap on the rest of the page (margins, line numbers, around the answers)
+  puts the cursor at the nearest place in the text and focuses the sheet.
 - 1.3.4 (code 14): `android.hardware.type.pc` is back to `required="false"`. The user, the same day: "make
   summa actually available on phones too since that works". Only the manifest changed again. On Play the
   ChromeOS devices excluded by hand for 1.3.3 were included again (Device catalog).
