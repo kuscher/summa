@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.3 (2026-10-01)
+
+- **On Google Play, Summa is now for Googlebooks and other desktop-class Android devices only**
+  (devices that report themselves as a PC). Nothing changes in the app. The APK from GitHub still
+  installs on Android 12 or newer phones and tablets.
+
 ## 1.3.2 (2026-10-01)
 
 Small things that make Summa behave like a desktop app.

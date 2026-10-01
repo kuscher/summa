@@ -3,7 +3,13 @@
 State and next steps, for whoever continues (human or Claude). Keep this current at every milestone.
 Read CLAUDE.md first (layout, dev loop, gotchas).
 
-## Where things are (v1.3.2 in main, 2026-10-01)
+## Where things are (v1.3.3 in main, 2026-10-01)
+- 1.3.3 (code 13): only the manifest changed. `android.hardware.type.pc` is `required="true"`, so Google
+  Play offers Summa only to PC-type devices (Googlebooks report it; the user asked for Play to target
+  Googlebooks, or at least desktop Android devices, before production). Android doesn't enforce the
+  feature at install time, so GitHub's APK still installs on phones. To offer phones on Play again,
+  set it to `required="false"`. Released with the tag `v1.3.3` (the first release through the tag
+  workflow).
 - 1.3.2 (code 12; on Google Play's closed-testing track, sent for review 2026-10-01 from the Mac with the new key; NOT yet
   released on GitHub: push the tag `v1.3.2` and the release workflow does it, see docs/RELEASING.md): the sheet takes
   focus on open when a hardware keyboard is present (`SheetEditor` LaunchedEffect; phones only for

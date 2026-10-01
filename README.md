@@ -126,7 +126,8 @@ Over 370 more examples, taken from the Soulver and Numi documentation, run as te
 ## Install
 
 Summa is made for Googlebooks (Googlebook OS, Android 17) and also runs on Android 12 or newer
-phones and tablets.
+phones and tablets. On Google Play it is offered to Googlebooks and other desktop-class devices
+only; the APK here installs on phones and tablets too.
 
 1. On your Googlebook or phone, download **[Summa.apk](../../releases/latest/download/Summa.apk)**
    from the latest release.

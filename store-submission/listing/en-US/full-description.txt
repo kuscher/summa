@@ -24,7 +24,7 @@ rate = $85/hour, then 6.5 hours × rate. Refer to a line with line6, the line ab
 Quiet by design
 Just the sheet: text on the left, answers on the right, nothing floating over it. Click an answer to copy it; right-click it to copy the line or convert it. Suggestions appear as grey text after the cursor; Tab takes one.
 
-Made for laptops, fine on phones
+Made for laptops
 On Android laptops and in desktop windows your sheets are listed on the left, with keyboard shortcuts for everything. A mini calculator can stay on top of your other windows. Select a sum in any app and choose Calculate to see the answer right there. Export a sheet as PDF, a web page, CSV, Markdown or text, or print it.
 
 Private

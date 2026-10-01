@@ -1,1 +1,1 @@
-Start typing as soon as a sheet opens, Esc clears the search and leaves Settings, and Summa no longer asks for a touchscreen, so keyboard-and-mouse laptops can install it.
+Summa is now for Googlebooks and other desktop-class Android devices. Also new: start typing as soon as a sheet opens, and Esc clears the search and leaves Settings.
