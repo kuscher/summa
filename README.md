@@ -25,7 +25,7 @@
   <img src="https://img.shields.io/badge/developed_on-a_Googlebook-F0520C" alt="Developed on a Googlebook">
 </p>
 
-<p align="center"><sub>A personal hobby project by <a href="https://github.com/kuscher">Alexander Kuscher</a>, proudly developed on a Googlebook.
+<p align="center"><sub>A personal hobby project by Fika Labs, proudly developed on a Googlebook.
 Not affiliated with or endorsed by any employer (<a href="#about-this-project">more</a>). Inspired by Soulver and Numi.</sub></p>
 
 <p align="center">
@@ -205,7 +205,7 @@ how releases are made.
 
 ## About this project
 
-Summa is my personal hobby project, made by me, [Alexander Kuscher](https://github.com/kuscher).
+Summa is my personal hobby project, published as Fika Labs.
 It has no affiliation with my employer: my employer didn't make, sponsor, review or endorse it,
 and Summa doesn't endorse my employer or its products either. The views, choices and any
 mistakes here are mine alone.
@@ -214,7 +214,7 @@ Summa is inspired by [Soulver](https://soulver.app) and [Numi](https://numi.app)
 apps that showed how good a notepad calculator can be. It's an independent project and isn't made
 by or affiliated with Acqualia (Soulver) or Numi's maker.
 
-— Alexander ([@kuscher](https://github.com/kuscher))
+— Fika Labs
 
 ## License
 
