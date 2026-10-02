@@ -3,6 +3,11 @@
 A Soulver/Numi-class notepad calculator for Googlebooks (Googlebook OS = Android 17 desktop) and
 Android 12+. Plain APK, Kotlin + Jetpack Compose, Material 3 Expressive (material3 1.5.0-alpha, pinned).
 
+## This repo is public
+The Play listing links here. Keep out of every file, commit message and release note: device serial numbers and
+adb names, build numbers and codenames, what else is installed or open on the owner's devices, the names of his
+private projects and paths into their repos, and where signing keys are backed up (say "backed up privately").
+
 ## Layout
 - `engine/` — pure Kotlin (no `android.*`), tested with JUnit on the VM. `./summa test`.
   - `Num.kt` exact `Rational` + `Num` (exact or approximate). `Units.kt` dimensions and `UnitExpr`.
