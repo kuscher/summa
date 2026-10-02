@@ -12,7 +12,8 @@ the notes, push a tag `v<version>`, and GitHub builds, signs and publishes.
 `1D:EA:BA:8D:67:3F:B4:F1:00:C3:D9:74:78:D2:2E:EE:25:50:CD:E5:4D:C2:6B:65:99:C3:F3:4B:5F:F5:79:0F`).
 Android only installs an update over an existing app when both are signed with the same key; a
 release signed with anything else makes everyone uninstall first (and lose their sheets). The key
-lives in the repo's `release` environment on GitHub and with the maintainer in `~/.config/summa/` (`keystore.jks`, `keystore.pass`), backed up with its password to private storage (folder a private folder). It replaced the original key on 30 September 2026, so
+lives in the repo's `release` environment on GitHub and with the maintainer in `~/.config/summa/` (`keystore.jks`, `keystore.pass`), backed up privately,
+outside the repo. It replaced the original key on 30 September 2026, so
 installs of 1.3.1 and earlier from GitHub have to be uninstalled once; it is never committed (`.gitignore` covers `*.jks`, `*.keystore`, `*.pass`).
 
 ## Steps
