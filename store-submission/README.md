@@ -37,7 +37,7 @@ companies' app names. Every screenshot is Summa's real UI (see "Remaking the gra
    and the APKs on GitHub have the same signature, and people can move between them without
    uninstalling. (If you let Google generate a new key instead, Play installs and GitHub installs
    can't update each other.) The same keystore is used as the upload key. Key:
-   `~/.config/summa/keystore.jks` (alias `summa`), backup in a private folder.
+   `~/.config/summa/keystore.jks` (alias `summa`), backed up privately.
 3. **Build the bundle** (Play only takes .aab files):
    ```bash
    ./gradlew :app:bundleRelease     # app/build/outputs/bundle/release/app-release.aab, signed with the Summa key

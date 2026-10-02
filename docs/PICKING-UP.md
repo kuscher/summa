@@ -46,7 +46,7 @@ Read CLAUDE.md first (layout, dev loop, gotchas).
 
 ## Before 1.1 (v1.0)
 - Releases v0.1, v0.2, v0.3 and v1.0 are on GitHub (`tools/release.sh --publish`), all signed with
-  the key in ~/.config/summa (a new key since 2026-09-30, also Google Play's; backed up with its password to a private folder).
+  the key in ~/.config/summa (a new key since 2026-09-30, also Google Play's; backed up privately, outside the repo).
 - Engine: 386-case golden corpus (`corpus.tsv`), holiday tests, fuzz, and a 2,000-line timing test
   all pass (`./summa test`). ~18 ms cached / ~32 ms after an edit for 2,000 lines on the VM,
   ~50 ms on the HP (release build). `PerfProbe` times any sheet: `SUMMA_PERF=file ./gradlew :engine:test --tests '*PerfProbe*' -i`.

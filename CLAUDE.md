@@ -51,7 +51,7 @@ Android 12+. Plain APK, Kotlin + Jetpack Compose, Material 3 Expressive (materia
   signs and publishes the APK and puts the bundle on Google Play as a draft (docs/RELEASING.md). No key file needed;
   `tools/release.sh --publish` is the fallback on a machine that has the key.
   Key: ~/.config/summa/keystore.jks + keystore.pass (alias summa, cert SHA-256 1D:EA:BA:8D:…:F5:79:0F),
-  backed up with its password to a private folder. A new key since 2026-09-30, the one Google Play signs with too; installs of 1.3.1 and earlier from GitHub must be uninstalled once.
+  backed up privately, outside the repo. A new key since 2026-09-30, the one Google Play signs with too; installs of 1.3.1 and earlier from GitHub must be uninstalled once.
 - Never run emulators on the VM; CI (GitHub Actions) builds and runs the engine tests.
 
 ## Design rules (1.1, approved by the user: canvas https://claude.ai/artifact/3JoM2SnRZyabq32f2XaFmt)
