@@ -9,9 +9,10 @@ Data safety, testing requirements for new personal accounts).
 | Play Console field | File | Limit / spec |
 |---|---|---|
 | App name | [listing/en-US/title.txt](listing/en-US/title.txt) | 30 characters (25 used) |
-| Short description | [listing/en-US/short-description.txt](listing/en-US/short-description.txt) | 80 characters (68 used) |
+| Short description | [listing/en-US/short-description.txt](listing/en-US/short-description.txt) | 80 characters (67 used) |
 | Full description | [listing/en-US/full-description.txt](listing/en-US/full-description.txt) | 4,000 characters (about 2,400 used) |
 | Release notes ("What's new") | [listing/en-US/release-notes.txt](listing/en-US/release-notes.txt) | 500 characters |
+| German and French | [listing/de-DE/](listing/de-DE), [listing/fr-FR/](listing/fr-FR): the same four files | same limits. The app itself is in English, and both descriptions say so; the examples stay as they are typed |
 | App icon | [graphics/icon-512.png](graphics/icon-512.png) | 512 × 512, 32-bit PNG with alpha, full square (Play rounds the corners), under 1 MB |
 | Feature graphic | [graphics/feature-graphic.png](graphics/feature-graphic.png) | 1024 × 500, 24-bit PNG, no alpha |
 | Phone screenshots | [graphics/phone/](graphics/phone) (6) | 1080 × 1920, 9:16, 24-bit PNG (meets the "4+ at 1080 px" promotion bar) |

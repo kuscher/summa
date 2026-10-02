@@ -1,0 +1,36 @@
+Summa est une feuille de papier qui fait les calculs. Écrivez une ligne en mots simples et la réponse apparaît à côté, à droite. Changez un nombre et tout ce qui en dépend se met à jour.
+
+Bon à savoir : l'application est en anglais et les calculs s'écrivent avec des mots anglais (in, of, until…). Les exemples ci-dessous sont donc tels que vous les saisirez.
+
+Des mots autour des nombres, sans problème
+Lunch: $12 + 15% tip
+Flights: 2 × €149
+Hotel: 3 nights × $165 in EUR
+Summa ignore les mots qu'il ne connaît pas et calcule le reste.
+
+Unités et argent
+5 km in miles, 72 °F in °C, 1,200 sq ft in m², 6.4 L/100 km in mpg, $25/hour × 14 hours. Taux de change en direct pour 166 devises et métaux, actualisés au plus deux fois par jour, avec des taux intégrés pour l'usage hors ligne. Cours des cryptomonnaies si vous les activez.
+
+Les pourcentages, sous toutes leurs formes
+20% of $10, 5% on $30, 6% off €40, $50 as a % of $100, 20 is 10% of what.
+
+Dates, heures et fuseaux horaires
+days until Dec 25, next friday + 2 weeks, 8:30 am + 3 h 20 min, 3 pm Munich in Tokyo, workdays until Dec 18, next holiday. Plus de 6 000 villes et les abréviations courantes, le tout hors ligne. Les calculs en jours ouvrés tiennent compte des jours fériés de votre région (22 pays).
+
+L'argent dans le temps
+$10,000 at 5% for 10 years compounded monthly, loan of $300k at 6% for 30 years (la mensualité), €1,350 incl 19% VAT, €120 without 20% VAT.
+
+Vos propres noms, unités et fonctions
+rate = $85/hour, puis 6.5 hours × rate. Désignez une ligne avec line6, la ligne du dessus avec prev, et additionnez un bloc avec sum. Définissez 1 coffee = $4.50 ou tip(bill) = bill × 18% une fois sur la feuille Definitions et utilisez-les dans toutes les feuilles.
+
+Sobre par choix
+Rien que la feuille : le texte à gauche, les réponses à droite, rien qui flotte par-dessus. Cliquez sur une réponse pour la copier ; un clic droit copie la ligne ou la convertit. Les suggestions apparaissent en gris après le curseur ; Tab en accepte une.
+
+Conçu pour les ordinateurs portables, à l'aise sur téléphone
+Sur les ordinateurs portables Android et dans les fenêtres de bureau, vos feuilles sont listées à gauche, avec des raccourcis clavier pour tout. Une mini-calculatrice peut rester au-dessus de vos autres fenêtres. Sélectionnez un calcul dans n'importe quelle application et choisissez Calculate pour voir la réponse sur place. Exportez une feuille en PDF, page web, CSV, Markdown ou texte, ou imprimez-la.
+
+Confidentialité
+Pas de compte, pas de publicité, pas de mesure d'audience. Vos feuilles restent sur votre appareil. Summa ne télécharge que des tables publiques de taux de change et n'envoie rien sur vous ni sur vos feuilles.
+
+Libre et open source
+Summa est un projet personnel, réalisé sur le temps libre, sans lien avec un employeur et sans son soutien. Le code est sous licence MIT : github.com/kuscher/summa

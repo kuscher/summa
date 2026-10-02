@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.6 (2026-10-02)
+
+- **About:** the line in Settings now reads "Developed on a Googlebook". Nothing else changed.
+
 ## 1.3.5 (2026-10-01)
 
 - **Fixed: a sheet you couldn't type in.** With a mouse or trackpad, a click anywhere outside the

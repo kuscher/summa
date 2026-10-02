@@ -22,10 +22,10 @@
   <img src="https://img.shields.io/badge/Android-12%2B-2E2946" alt="Android 12 and up">
   <img src="https://img.shields.io/badge/Material_3-Expressive-3450C4" alt="Material 3 Expressive">
   <img src="https://img.shields.io/badge/license-MIT-555555" alt="MIT license">
-  <img src="https://img.shields.io/badge/developed_entirely_on-a_Googlebook-F0520C" alt="Developed entirely on a Googlebook">
+  <img src="https://img.shields.io/badge/developed_on-a_Googlebook-F0520C" alt="Developed on a Googlebook">
 </p>
 
-<p align="center"><sub>A personal hobby project by <a href="https://github.com/kuscher">Alexander Kuscher</a>, proudly developed entirely on a Googlebook.
+<p align="center"><sub>A personal hobby project by <a href="https://github.com/kuscher">Alexander Kuscher</a>, proudly developed on a Googlebook.
 Not affiliated with or endorsed by any employer (<a href="#about-this-project">more</a>). Inspired by Soulver and Numi.</sub></p>
 
 <p align="center">
@@ -173,9 +173,9 @@ Nothing is ever uploaded: the requests carry no sheet content, account or device
 off, Summa uses the rates bundled in the app (and whatever it downloaded last), and works fully offline.
 City and time-zone lookups are offline too.
 
-## Made on a Googlebook
+## Developed on a Googlebook
 
-Everything here was written, built and tested on a Googlebook, in its built-in Linux Terminal:
+Summa is developed on a Googlebook, in its built-in Linux Terminal:
 
 - The calculation engine is plain Kotlin, tested with JUnit in the Terminal in a few seconds. A
   2,000-line sheet re-evaluates in about 50 ms on the Googlebook.

@@ -204,7 +204,7 @@ fun About() {
         }
         Text(
             "A personal hobby project by Alexander Kuscher, not affiliated with or endorsed by any employer. " +
-                "Developed entirely on a Googlebook. Inspired by Soulver and Numi.",
+                "Developed on a Googlebook. Inspired by Soulver and Numi.",
             style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant,
         )
         var licences by remember { mutableStateOf(false) }

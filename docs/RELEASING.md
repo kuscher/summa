@@ -21,7 +21,8 @@ installs of 1.3.1 and earlier from GitHub have to be uninstalled once; it is nev
 1. On `main`: bump `versionCode` (+1) and `versionName` in `app/build.gradle.kts`.
 2. Add `docs/release-notes/<version>.md` (what's new, in plain words) and the same under a new
    heading in `CHANGELOG.md`. Put Google Play's "What's new" text (500 characters at most) in
-   `store-submission/listing/en-US/release-notes.txt`.
+   `store-submission/listing/en-US/release-notes.txt`, and the same in `de-DE` and `fr-FR` (the listing has
+   three languages; the tag uploads the English text, the other two go in when the release is sent for review).
 3. Commit and push, then tag the commit and push the tag:
 
 ```bash

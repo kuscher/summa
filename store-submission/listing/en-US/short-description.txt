@@ -1,1 +1,1 @@
-Type maths the way you'd say it: units, money, dates and time zones.
+Type math the way you'd say it: units, money, dates and time zones.

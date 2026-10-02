@@ -1,0 +1,36 @@
+Summa ist ein Blatt Papier, das rechnet. Schreib eine Zeile in einfachen Worten, und rechts daneben steht das Ergebnis. Änderst du eine Zahl, rechnet Summa alles neu, was davon abhängt.
+
+Gut zu wissen: Die App ist auf Englisch, und gerechnet wird mit englischen Wörtern (in, of, until …). Die Beispiele hier stehen deshalb so, wie du sie eintippst.
+
+Wörter um die Zahlen sind in Ordnung
+Lunch: $12 + 15% tip
+Flights: 2 × €149
+Hotel: 3 nights × $165 in EUR
+Summa überspringt die Wörter, die es nicht kennt, und rechnet den Rest aus.
+
+Einheiten und Geld
+5 km in miles, 72 °F in °C, 1,200 sq ft in m², 6.4 L/100 km in mpg, $25/hour × 14 hours. Aktuelle Wechselkurse für 166 Währungen und Edelmetalle, höchstens zweimal täglich aktualisiert; eingebaute Kurse für unterwegs ohne Netz. Kryptokurse, wenn du sie einschaltest.
+
+Prozente, auf jede Art
+20% of $10, 5% on $30, 6% off €40, $50 as a % of $100, 20 is 10% of what.
+
+Daten, Uhrzeiten und Zeitzonen
+days until Dec 25, next friday + 2 weeks, 8:30 am + 3 h 20 min, 3 pm Munich in Tokyo, workdays until Dec 18, next holiday. Über 6.000 Städte und die üblichen Abkürzungen, alles offline. Beim Rechnen mit Arbeitstagen zählen die gesetzlichen Feiertage deiner Region nicht mit (22 Länder).
+
+Geld über die Zeit
+$10,000 at 5% for 10 years compounded monthly, loan of $300k at 6% for 30 years (die Monatsrate), €1,350 incl 19% VAT, €120 without 20% VAT.
+
+Eigene Namen, Einheiten und Funktionen
+rate = $85/hour, danach 6.5 hours × rate. Eine Zeile sprichst du mit line6 an, die Zeile darüber mit prev, und sum addiert einen Block. Lege 1 coffee = $4.50 oder tip(bill) = bill × 18% einmal auf dem Blatt Definitions fest und nutze sie auf jedem Blatt.
+
+Ruhig, mit Absicht
+Nur das Blatt: links der Text, rechts die Ergebnisse, nichts schwebt darüber. Ein Klick auf ein Ergebnis kopiert es; ein Rechtsklick kopiert die Zeile oder rechnet um. Vorschläge erscheinen als grauer Text hinter dem Cursor; Tab übernimmt einen.
+
+Für Laptops gemacht, auf dem Handy zu Hause
+Auf Android-Laptops und in Desktop-Fenstern stehen deine Blätter links in einer Liste, und für alles gibt es Tastenkürzel. Ein Mini-Rechner kann über deinen anderen Fenstern bleiben. Markiere eine Rechnung in einer beliebigen App und wähle Calculate, um das Ergebnis gleich dort zu sehen. Exportiere ein Blatt als PDF, Webseite, CSV, Markdown oder Text, oder drucke es.
+
+Privat
+Keine Konten, keine Werbung, keine Analyse. Deine Blätter bleiben auf deinem Gerät. Summa lädt nur öffentliche Wechselkurstabellen herunter und sendet nichts über dich oder deine Blätter.
+
+Frei und quelloffen
+Summa ist ein privates Hobbyprojekt, nicht verbunden mit einem Arbeitgeber und von keinem unterstützt. Der Code steht unter der MIT-Lizenz: github.com/kuscher/summa
