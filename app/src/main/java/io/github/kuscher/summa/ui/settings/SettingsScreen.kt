@@ -203,7 +203,7 @@ fun About() {
             Text("Summa ${BuildConfig.VERSION_NAME}", Modifier.padding(start = 10.dp), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight(700)))
         }
         Text(
-            "A personal hobby project by Alexander Kuscher, not affiliated with or endorsed by any employer. " +
+            "A hobby project by Fika Labs, not affiliated with or endorsed by any employer. " +
                 "Developed on a Googlebook. Inspired by Soulver and Numi.",
             style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant,
         )

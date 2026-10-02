@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.7 (2026-10-02)
+
+- **About:** the lines in Settings and the licence screen name Fika Labs as the maker. Nothing else changed.
+
 ## 1.3.6 (2026-10-02)
 
 - **About:** the line in Settings now reads "Developed on a Googlebook". Nothing else changed.
